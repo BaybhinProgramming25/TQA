@@ -12,13 +12,7 @@ services:
         aliases:
           - ollama
     entrypoint: ["/bin/sh", "-c", "ollama serve & sleep 5 && ollama pull nomic-embed-text && ollama pull phi3 && wait"]
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all 
-              capabilities: [gpu]
+    
   chromadb:
     image: chromadb/chroma
     ports:
