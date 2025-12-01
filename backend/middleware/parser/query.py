@@ -19,9 +19,9 @@ def parse_pdf(file_bytes):
 
     # Get the sem_mapping
     sm_ll = get_sem_mapping(pdf_pages_list)
-    student_classes = get_content_from_each_sem(sm_ll, pdf_pages_list)
+    description_list, metadata_list  = get_content_from_each_sem(sm_ll, pdf_pages_list)
 
     # Then we want to add it to chroma 
-    construct_chroma(student_classes)
+    construct_chroma(description_list, metadata_list)
     doc.close()
  
