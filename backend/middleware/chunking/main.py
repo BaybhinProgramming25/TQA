@@ -39,7 +39,7 @@ def chunk_data(student_data_array):
     return text_chunks
 
 
-def construct_chroma(student_data_array: list):
+def construct_chroma(description_list: list, metadata_list: list):
 
     collection_str = 'student-transcript-data'
     client = chromadb.EphemeralClient()
@@ -51,25 +51,25 @@ def construct_chroma(student_data_array: list):
         client.create_collection(name=collection_str)
     
     #2) Chunk the required data 
-    data_chunks = chunk_data(student_data_array)
+    data_chunks = chunk_data(description_list)
 
     #3) Add the newly created chunk data into the database and verify
     embeddings = OllamaEmbeddings(model="nomic-embed-text", base_url='http://ollama:11434')
 
     vectorstore = Chroma(
         collection_name=collection_str,
-        embedding_function=embeddings
+        embedding_function=embeddings,
     )
     
     # Make documents from chunks 
     documents = [
-        Document(page_content=chunk)
-        for chunk in data_chunks
+        Document(
+            page_content=chunk,
+            metadata={
+                **metadata,
+                "chunk_id": i
+            }
+        )
+        for i, (chunk, metadata) in enumerate(zip(data_chunks, metadata_list))
     ]
-
-    # Add and verify
     vectorstore.add_documents(documents)
-    collection = client.get_collection(name=collection_str)
-
-    result = collection.get(limit=1, include=["embeddings"])
-    print(f"Dimension: {len(result['embeddings'][0])}")  
