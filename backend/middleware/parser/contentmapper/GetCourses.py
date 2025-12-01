@@ -1,9 +1,8 @@
 from .Constants import AVOIDED_CLASSES, GRADES_VALUE_MAPPING, TRANSFER_FORMARTS, MATH_PLACEMENT_MAPPING, TERMINATING_WORDS
-from .BuildCourse import build_course
+from .BuildCourse import create_course_string
 
 def get_content_from_each_sem(sm_ll, pdf_pages_list):
 
-    # Make sure we have at least two nodes 
     if sm_ll is None or sm_ll.head.next is None:
         return 
     
@@ -12,7 +11,9 @@ def get_content_from_each_sem(sm_ll, pdf_pages_list):
 
     student_id = get_student_id(pdf_pages_list[slow_ptr.data[1]])
     
+    tup_holder = []
     classes_holder = []
+    metadata_holder = []
 
     while fast_ptr:
         sub_arr = pdf_pages_list[slow_ptr.data[1]:fast_ptr.data[1]]
@@ -25,13 +26,18 @@ def get_content_from_each_sem(sm_ll, pdf_pages_list):
         course_letter_grades = get_course_letter(sub_arr)
         course_total_points = get_course_total_points(sub_arr)
 
-        tmp_holder_array = build_course(student_id, slow_ptr.data[0], course_names, course_numbers, course_descriptions, course_attempted_points, course_earned_points, course_letter_grades, course_total_points)
-        classes_holder.extend(tmp_holder_array)
+        course_tup_arr = create_course_string(student_id, slow_ptr.data[0], course_names, course_numbers, course_descriptions, course_attempted_points, course_earned_points, course_letter_grades, course_total_points)
+        tup_holder.extend(course_tup_arr)
 
         slow_ptr = fast_ptr
         fast_ptr = fast_ptr.next
     
-    return classes_holder
+    # Divide them into tuples 
+    for value1, value2 in tup_holder:
+        classes_holder.append(value1)
+        metadata_holder.append(value2)
+    
+    return (classes_holder, metadata_holder)
 
 def get_student_id(text):
 
