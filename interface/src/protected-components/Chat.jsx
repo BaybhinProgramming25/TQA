@@ -50,38 +50,44 @@ const Chat = () => {
       files: uploadedFiles.length > 0 ? uploadedFiles : null
     };
 
+    const formData = new FormData()
+    formData.append('message', inputValue)
+
+    if (uploadedFiles.length > 0) {
+      formData.append('file', uploadedFiles[0].file)
+    }
+
     try {
-
-      const formData = new FormData()
-      formData.append('message', inputValue)
-
-      if (uploadedFiles.length > 0) {
-        formData.append('file', uploadedFiles[0].file)
-      }
-      
-      console.log(formData);
-      console.log("Response made it here");
-      const response = await axios.post('http://localhost:3000/parse', formData, { withCredentials: true });
-      console.log(response);
 
       setMessages(prev => [...prev, userMessage]);
       setInputValue('');
-      setUploadedFiles([]);
       setIsLoading(true);
 
+      const response = await axios.post('http://localhost:3000/parse', formData, { withCredentials: true });
+ 
       setTimeout(() => {
-      const aiMessage = {
-        id: Date.now() + 1,
-        text: 'This is a sample response. Connect this to your LLM API!',
-        sender: 'ai',
-        timestamp: new Date().toLocaleTimeString()
-      };
-      setMessages(prev => [...prev, aiMessage]);
-      setIsLoading(false);
+
+        const aiMessage = {
+          id: Date.now() + 1,
+          text: response.data.message,
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString()
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setIsLoading(false);
+        
       }, 1000);
     }
-    catch (error){
-      console.error('Error making request to backend: ', error);
+    catch {
+
+      const aiMessage = {
+          id: Date.now() + 1,
+          text: 'Sorry, I am unable to answer that. Please try something else',
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString()
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setIsLoading(false);
     }
   };
 
