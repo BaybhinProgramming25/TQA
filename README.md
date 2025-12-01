@@ -39,5 +39,12 @@ http://localhost:5173
 
 # System Architecture
 
-Coming Soon... 
 
+![System Architecture](images/architecture.png)
+
+
+# Disclaimer 
+
+Although this application was a research project and petitioned to the Stony Brook Computer Science department, it was unclear if this was fully deployed for students to use. No feedback or notice was received 
+from the department to me in regards to whether or not this application was used. No confirmation was also given by the professor about this application being deployed. 
+However, this application still works as intended and it is strictly for students to upload their transcrips to ask questions about it. 
