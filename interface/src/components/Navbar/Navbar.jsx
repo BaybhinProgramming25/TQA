@@ -60,7 +60,6 @@ const Navbar = () => {
                     <div className={`hamburger-content ${isMenuOpen ? 'show' : ''}`}>
                         {(user) && (
                             <>
-                                <Link to="/parse" onClick={closeMenu}>Dashboard</Link>
                                 <Link to="/logout" onClick={logout_wrapper}>Logout</Link>
                             </>
                         )}
