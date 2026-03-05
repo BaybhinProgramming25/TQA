@@ -1,4 +1,3 @@
-import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -6,6 +5,8 @@ from models.database import connect_mongo, close_mongo
 
 from controllers.qa import router as qa_router
 from controllers.user import router as user_router
+
+import os
 
 @asynccontextmanager
 async def lifespan(app):
