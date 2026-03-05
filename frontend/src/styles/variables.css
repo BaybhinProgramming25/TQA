@@ -1,0 +1,27 @@
+:root {
+  --bg-app: #212121;
+  --bg-sidebar: #171717;
+  --bg-input: #2f2f2f;
+  --bg-card: #2a2a2a;
+  --bg-message-ai: #2f2f2f;
+  --bg-message-user: #7c3aed;
+
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-focus: rgba(255, 255, 255, 0.3);
+
+  --text-primary: #ececec;
+  --text-secondary: #9b9b9b;
+
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-subtle: rgba(124, 58, 237, 0.15);
+
+  --danger: #ef4444;
+
+  --sidebar-width: 260px;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+}
