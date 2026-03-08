@@ -1,10 +1,11 @@
-from pydantic import BaseModel, EmailStr 
+from pydantic import BaseModel 
 
 class LoginData(BaseModel):
-    email: EmailStr
+    email: str 
     password: str 
 
 class SignUpData(BaseModel):
-    email: EmailStr
+    email: str 
     password: str 
     age: int 
+    # More fields to be determined 
