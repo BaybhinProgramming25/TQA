@@ -1,6 +1,16 @@
-.PHONY: dir  
+# Start everything
+up:
+	docker compose up -d --build
 
-dir:
-	- docker-compose down 
-	- docker-compose build 
-	- docker-compose up -d 
+# Stop everything
+down:
+	docker compose down
+
+# Restart everything (the one you want!)
+restart:
+	docker compose down
+	docker compose up -d --build
+
+# See logs
+logs:
+	docker compose logs -f
