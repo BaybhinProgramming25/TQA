@@ -1,52 +1,4 @@
 services:
-  ollama:
-    image: ollama/ollama 
-    ports:
-      - "11434:11434"
-    volumes:
-      - "ollama_data:/root/.ollama"
-    environment:
-      - OLLAMA_HOST=ollama
-    networks:
-      tqa:
-        aliases:
-          - ollama
-    entrypoint: ["/bin/sh", "-c", "ollama serve & sleep 5 && ollama pull nomic-embed-text && ollama pull phi3 && wait"]
-    
-  chromadb:
-    image: chromadb/chroma
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./chroma-data:/data
-    environment:
-      - CHROMA_HOST=chromadb
-    networks:
-      tqa:
-        aliases:
-          - chromadb
-  
-  mongo:
-    image: mongo:5.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - "mongo:/data/db"
-    networks:
-      tqa:
-        aliases:
-          - mongodb
-  
-  mailhog:
-    image: mailhog/mailhog
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-    networks:
-      tqa: 
-        aliases:
-          - mailhog
-
   backend:
     image: tqa-backend 
     build: 
@@ -54,27 +6,40 @@ services:
       dockerfile: Dockerfile 
     ports:
       - "3000:3000"
-    depends_on:
-      - chromadb 
-      - mongo 
     networks:
       - tqa 
-  
+
   frontend:
     image: tqa-frontend
     build:
-      context: ./interface 
+      context: ./frontend 
       dockerfile: Dockerfile 
     ports:
       - "5173:5173"
     depends_on:
-      - backend 
+      - tqa-mysql
     networks:
       - tqa  
+  
+  tqa-mysql:
+    image: mysql
+    restart: always 
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 5 
+    volumes:
+      - mysql-data:/var/lib/mysql
+    
+
 
 volumes:
-  chroma-data:
-  ollama_data:
-  mongo: 
+  mysql-data:
 networks:
   tqa: 
