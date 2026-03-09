@@ -36,8 +36,6 @@ services:
       retries: 5 
     volumes:
       - mysql-data:/var/lib/mysql
-    
-
 
 volumes:
   mysql-data:
