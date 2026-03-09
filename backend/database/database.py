@@ -1,20 +1,19 @@
 from dotenv import load_dotenv
-
 from sqlalchemy import create_engine 
-from sqlalchemy.orm import sessionmaker, declarative_base 
+from sqlalchemy.orm import sessionmaker, DeclarativeBase 
 
-load_dotenv("../")
+load_dotenv(interpolate=True, override=True)
 import os 
 
-# SPECIFY database url
 DATABASE_URL= os.getenv("DATABASE_URL")
+print(DATABASE_URL)
 
-# Make the engine
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
-Base = declarative_base()
 
-# Gives a database session to each request 
+class Base(DeclarativeBase):
+    pass 
+
 def get_db():
     db = SessionLocal()
     try:
