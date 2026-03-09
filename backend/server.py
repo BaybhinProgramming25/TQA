@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from controllers.user import router as user_router
-from backend.database.database import engine, Base
+from database.database import engine, Base
 import os
 
 @asynccontextmanager
