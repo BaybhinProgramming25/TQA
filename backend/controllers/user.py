@@ -1,49 +1,96 @@
 from fastapi import APIRouter, HTTPException, Depends 
+from fastapi.responses import JSONResponse
+
 from dotenv import load_dotenv
+
 from classes.userdata import LoginData, SignUpData
 from sqlalchemy.orm import Session
-from backend.database.models import User 
-from backend.database.database import get_db
 
-import bcrypt 
+from database.models import User 
+from database.database import get_db
+
+from helpers.jwt import create_token
+from helpers.hashing import hash_password, verify_password
 
 router = APIRouter()
 load_dotenv()
 
-# Add health endpoint
+
 @router.get("/api/health")
 async def health_check():
     return {"status": "ok"}
 
-# Login endpoint
+
 @router.post("/api/login")
 async def login(data: LoginData, db: Session = Depends(get_db)):
-
-    # Check JWT
-
-    # Business logic checks 
-
-    if len(data.password) < 8:
-        raise HTTPException(status_code=422, detail="Password must be at least 8 characters long")
 
     try:
         user = db.query(User).filter(User.email == data.email).first()
 
         if not user:
             raise HTTPException(status_code=404, detail="Email not found")
-            
-        if not bcrypt.verify(user.password, data.password):
+        
+        if not verify_password(data.password, user.password):
             raise HTTPException(status_code=401, detail="Invalid Password")
-                
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error {e}")
+
+
+    token = create_token({"username": data.email})
     
+    response = JSONResponse(
+        content={"message": "Logged In!"},
+        status_code=200
+    )
+
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True, # JavaScript can't alter this cookie
+        secure=True, # send only over HTTPS
+        samesite="lax",
+        max_age=3600
+    )
+    return response
 
 @router.post("/api/signup")
-async def signup(data: SignUpData):
+async def signup(data: SignUpData, db: Session = Depends(get_db)):
 
-    if len(data.password) < 8:
-        raise HTTPException(status_code=422, detail="Password must be at least 8 characters long")
+    try:
+        email_exists = db.query(User).filter(User.email == data.email).first()
+        if email_exists:
+            raise HTTPException(status_code=409, detail="Email already exists")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal Server Error {e}")
     
-    # More to be implemented
-    pass 
+    hashed_password = hash_password(data.password)
+
+    new_user = User(
+        firstname=data.firstname,
+        lastname=data.lastname,
+        email=data.email,
+        password=hashed_password
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    token = create_token({"username": data.email})
+
+    response = JSONResponse(
+        content={"message": "Account Created!"},
+        status_code=200
+    )
+
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=3600
+    )
+
+    return response 
+    
