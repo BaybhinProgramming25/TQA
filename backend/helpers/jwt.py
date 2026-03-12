@@ -1,17 +1,18 @@
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
-from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import HTTPException, Request
 
 load_dotenv()
 import os, jwt
 
-ALGORITHM = "SHA256"
+ALGORITHM = "HS256"
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-oauth2_sceme = OAuth2PasswordBearer(tokenUrl="login")
 
 
-def get_current_user(token: str = Depends(oauth2_sceme)):
+def get_current_user(request: Request):
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or Expired JWT token. Please log in again.")
@@ -23,7 +24,7 @@ def create_token(data: dict) -> str:
     global JWT_SECRET_KEY, ALGORITHM
     
     to_encode = data.copy()
-    expire = datetime.now(datetime.time) + timedelta(hours=1) # Token expries in 1 hour 
+    expire = datetime.now(timezone.utc) + timedelta(hours=1) # Token expries in 1 hour 
     to_encode.update({"exp": expire})
     token = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=ALGORITHM)
     return token 

@@ -17,12 +17,12 @@ load_dotenv()
 
 
 @router.get("/api/health")
-async def health_check():
-    return {"status": "ok"}
+def health_check():
+    return {"status": "ok"}, 200
 
 
 @router.post("/api/login")
-async def login(data: LoginData, db: Session = Depends(get_db)):
+def login(data: LoginData, db: Session = Depends(get_db)):
 
     try:
         user = db.query(User).filter(User.email == data.email).first()
@@ -55,14 +55,11 @@ async def login(data: LoginData, db: Session = Depends(get_db)):
     return response
 
 @router.post("/api/signup")
-async def signup(data: SignUpData, db: Session = Depends(get_db)):
+def signup(data: SignUpData, db: Session = Depends(get_db)):
 
-    try:
-        email_exists = db.query(User).filter(User.email == data.email).first()
-        if email_exists:
-            raise HTTPException(status_code=409, detail="Email already exists")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal Server Error {e}")
+    email_exists = db.query(User).filter(User.email == data.email).first()
+    if email_exists:
+        raise HTTPException(status_code=409, detail="Email already exists")
     
     hashed_password = hash_password(data.password)
 

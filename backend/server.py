@@ -3,13 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from controllers.user import router as user_router
+from controllers.documents import router as documents_router
 from database.database import engine, Base
 import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs("../mysql-data", exist_ok=True) # Make folder for MySQL
-    os.makedirs("../redis-data", exist_ok=True) # Make folder for Redis 
+    os.makedirs("../redis-data", exist_ok=True) # Make folder for Redis
+    os.makedirs("/uploads", exist_ok=True) # Make folder for uploaded PDFs
     Base.metadata.create_all(bind=engine) # SQLAlchemy 
     print('Tables Created!')
     yield 
@@ -33,4 +35,5 @@ app.add_middleware(
 
 # app.include_router(qa_router)
 app.include_router(user_router)
+app.include_router(documents_router)
 
