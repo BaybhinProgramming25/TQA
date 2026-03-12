@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../api/index.js';
 import './Sidebar.css';
 
-const Sidebar = ({ onNewChat }) => {
+const Sidebar = ({ onNewChat, onSelectDoc, selectedDoc }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -70,10 +70,6 @@ const Sidebar = ({ onNewChat }) => {
           <span className="sidebar-logo-icon">T</span>
           <span className="sidebar-logo-text">TQA</span>
         </div>
-        <button className="sidebar-new-chat" onClick={onNewChat}>
-          <span className="sidebar-new-chat-icon">+</span>
-          New Chat
-        </button>
       </div>
 
       <div className="sidebar-documents">
@@ -100,13 +96,17 @@ const Sidebar = ({ onNewChat }) => {
             <li className="sidebar-documents-empty">No documents yet</li>
           )}
           {documents.map(doc => (
-            <li key={doc.id} className="sidebar-document-item">
+            <li
+              key={doc.id}
+              className={`sidebar-document-item ${selectedDoc?.id === doc.id ? 'sidebar-document-item--active' : ''}`}
+              onClick={() => onSelectDoc(doc)}
+            >
               <span className="sidebar-document-name" title={doc.filename}>
                 {doc.filename}
               </span>
               <button
                 className="sidebar-document-delete"
-                onClick={() => handleDelete(doc.id)}
+                onClick={(e) => { e.stopPropagation(); handleDelete(doc.id); }}
                 title="Delete"
               >
                 x

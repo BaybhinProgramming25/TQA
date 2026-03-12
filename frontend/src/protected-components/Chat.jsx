@@ -10,6 +10,7 @@ const Chat = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [selectedDoc, setSelectedDoc] = useState(null);
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -22,6 +23,14 @@ const Chat = () => {
     setMessages([]);
     setInputValue('');
     setUploadedFiles([]);
+    setSelectedDoc(null);
+  };
+
+  const handleSelectDoc = (doc) => {
+    setMessages([]);
+    setInputValue('');
+    setUploadedFiles([]);
+    setSelectedDoc(doc);
   };
 
   const handleFileUpload = (e) => {
@@ -64,7 +73,9 @@ const Chat = () => {
     const formData = new FormData();
     formData.append('message', inputValue);
 
-    if (uploadedFiles.length > 0) {
+    if (selectedDoc) {
+      formData.append('document_id', selectedDoc.id);
+    } else if (uploadedFiles.length > 0) {
       formData.append('file', uploadedFiles[0].file);
     }
 
@@ -120,16 +131,26 @@ const Chat = () => {
 
   return (
     <div className="chat-page">
-      <Sidebar onNewChat={handleNewChat} />
+      <Sidebar onNewChat={handleNewChat} onSelectDoc={handleSelectDoc} selectedDoc={selectedDoc} />
 
       <div className="chat-main">
+
+        {selectedDoc && (
+          <div className="chat-doc-banner">
+            <span>📄 {selectedDoc.filename}</span>
+            <button className="chat-doc-banner-close" onClick={() => setSelectedDoc(null)}>✕</button>
+          </div>
+        )}
+
         <div className="chat-messages">
           {isEmpty ? (
             <div className="chat-empty">
               <div className="chat-empty-icon">T</div>
               <h2 className="chat-empty-title">TQA</h2>
               <p className="chat-empty-desc">
-                Upload your transcript and ask anything about your academic records.
+                {selectedDoc
+                  ? `Ask anything about ${selectedDoc.filename}`
+                  : 'Upload your transcript and ask anything about your academic records.'}
               </p>
             </div>
           ) : (
@@ -218,7 +239,7 @@ const Chat = () => {
                 value={inputValue}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about your transcript..."
+                placeholder={selectedDoc ? `Ask about ${selectedDoc.filename}...` : 'Ask about your transcript...'}
                 rows="1"
               />
 

@@ -198,6 +198,32 @@
   background-color: var(--bg-app);
 }
 
+.chat-doc-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 24px;
+  background-color: var(--accent-subtle);
+  border-bottom: 1px solid var(--accent);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.chat-doc-banner-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s;
+}
+
+.chat-doc-banner-close:hover {
+  color: var(--danger);
+}
+
 .chat-input-box {
   background-color: var(--bg-input);
   border: 1px solid var(--border-subtle);

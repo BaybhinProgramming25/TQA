@@ -134,6 +134,17 @@
   border-radius: var(--radius-sm);
   background-color: var(--bg-input);
   gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.sidebar-document-item:hover {
+  background-color: var(--bg-card);
+}
+
+.sidebar-document-item--active {
+  background-color: var(--accent-subtle);
+  border: 1px solid var(--accent);
 }
 
 .sidebar-document-name {
