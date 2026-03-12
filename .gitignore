@@ -16,3 +16,6 @@ __pycache__/**
 # Ignore MySQL and Redis Data
 mysql-data/
 redis-data/
+
+# Ignore data folder in backend
+backend/data
