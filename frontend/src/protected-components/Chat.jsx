@@ -9,9 +9,7 @@ const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [selectedDoc, setSelectedDoc] = useState(null);
-  const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -22,67 +20,32 @@ const Chat = () => {
   const handleNewChat = () => {
     setMessages([]);
     setInputValue('');
-    setUploadedFiles([]);
     setSelectedDoc(null);
   };
 
   const handleSelectDoc = (doc) => {
     setMessages([]);
     setInputValue('');
-    setUploadedFiles([]);
     setSelectedDoc(doc);
   };
 
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const pdfFiles = files.filter(file => file.type === 'application/pdf');
-
-    if (pdfFiles.length !== files.length) {
-      alert('Only PDF files are allowed!');
-    }
-
-    const newFiles = pdfFiles.map(file => ({
-      id: Date.now() + Math.random(),
-      file: file,
-      name: file.name,
-      size: (file.size / 1024).toFixed(2)
-    }));
-
-    setUploadedFiles(prev => [...prev, ...newFiles]);
-  };
-
-  const handleRemoveFile = (fileId) => {
-    setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
-  };
-
-  const handlePlusClick = () => {
-    fileInputRef.current.click();
-  };
-
   const handleSendMessage = async () => {
-    if (inputValue.trim() === '' && uploadedFiles.length === 0) return;
+    if (inputValue.trim() === '' || !selectedDoc) return;
 
     const userMessage = {
       id: Date.now(),
-      text: inputValue || '📎 Uploaded file(s)',
+      text: inputValue,
       sender: 'user',
       timestamp: new Date().toLocaleTimeString(),
-      files: uploadedFiles.length > 0 ? uploadedFiles : null
     };
 
     const formData = new FormData();
     formData.append('message', inputValue);
-
-    if (selectedDoc) {
-      formData.append('document_id', selectedDoc.id);
-    } else if (uploadedFiles.length > 0) {
-      formData.append('file', uploadedFiles[0].file);
-    }
+    formData.append('document_id', selectedDoc.id);
 
     try {
       setMessages(prev => [...prev, userMessage]);
       setInputValue('');
-      setUploadedFiles([]);
       setIsLoading(true);
 
       if (textareaRef.current) {
@@ -196,43 +159,8 @@ const Chat = () => {
         </div>
 
         <div className="chat-input-area">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            multiple
-            onChange={handleFileUpload}
-            style={{ display: 'none' }}
-          />
-
           <div className="chat-input-box">
-            {uploadedFiles.length > 0 && (
-              <div className="chat-file-chips">
-                {uploadedFiles.map(file => (
-                  <div key={file.id} className="file-chip">
-                    <span className="file-chip-name">📄 {file.name}</span>
-                    <button
-                      className="file-chip-remove"
-                      onClick={() => handleRemoveFile(file.id)}
-                      aria-label="Remove file"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
             <div className="chat-input-row">
-              <button
-                className="input-attach-btn"
-                onClick={handlePlusClick}
-                aria-label="Upload PDF"
-                title="Upload PDF transcript"
-              >
-                📎
-              </button>
-
               <textarea
                 ref={textareaRef}
                 className="chat-textarea"
@@ -246,7 +174,7 @@ const Chat = () => {
               <button
                 className="input-send-btn"
                 onClick={handleSendMessage}
-                disabled={isLoading || (inputValue.trim() === '' && uploadedFiles.length === 0)}
+                disabled={isLoading || inputValue.trim() === '' || !selectedDoc}
                 aria-label="Send message"
               >
                 ↑
