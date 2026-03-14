@@ -1,12 +1,15 @@
 import os
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
+
 DATA_DIR = "data"
+_embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 _index_cache: dict[int, FAISS] = {}
 
 
@@ -17,19 +20,18 @@ def init_db(chunks: list[str], doc_id: int, openai_api_key: str):
     index_path = os.path.join(DATA_DIR, f"faiss_index_{doc_id}")
 
     if os.path.exists(index_path):
-        print(f" [cache hit] Index for doc {doc_id} already exists, skipping")
+        print(f"[cache hit] Index for doc {doc_id} already exists, skipping")
         return
 
-    embeddings = OpenAIEmbeddings(api_key=openai_api_key)
     docs = [Document(page_content=chunk) for chunk in chunks]
 
-    print(f"  [embedding] Embedding {len(docs)} chunks for doc {doc_id}...")
-    vector_store = FAISS.from_documents(docs, embeddings)
+    print(f"[embedding] Embedding {len(docs)} chunks for doc {doc_id}...")
+    vector_store = FAISS.from_documents(docs, _embeddings)
 
-    print(f"  [saving] Writing FAISS index to {index_path}")
+    print(f"[saving] Writing FAISS index to {index_path}")
     vector_store.save_local(index_path)
     del vector_store
-    print(f"  [saved] Done")
+    print(f"[saved] Done")
 
 
 def load_db(doc_id: int, openai_api_key: str) -> FAISS:
@@ -37,11 +39,10 @@ def load_db(doc_id: int, openai_api_key: str) -> FAISS:
 
     if doc_id not in _index_cache:
         index_path = os.path.join(DATA_DIR, f"faiss_index_{doc_id}")
-        embeddings = OpenAIEmbeddings(api_key=openai_api_key)
-        _index_cache[doc_id] = FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
-        print(f"  [cache miss] Loaded index for doc {doc_id} from disk")
+        _index_cache[doc_id] = FAISS.load_local(index_path, _embeddings, allow_dangerous_deserialization=True)
+        print(f"[cache miss] Loaded index for doc {doc_id} from disk")
     else:
-        print(f"  [cache hit] Index for doc {doc_id} already in memory")
+        print(f"[cache hit] Index for doc {doc_id} already in memory")
 
     return _index_cache[doc_id]
 
