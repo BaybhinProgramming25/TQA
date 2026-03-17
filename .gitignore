@@ -19,3 +19,8 @@ redis-data/
 
 # Ignore data folder in backend
 backend/data
+
+# Ignore testing
+backend/dataset.py
+backend/evaluate.py 
+backend/results.json
