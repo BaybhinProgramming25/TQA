@@ -12,6 +12,12 @@ import os
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 router = APIRouter()
 
+EXPORT_KEYWORDS = {"export", "excel", "spreadsheet", "xlsx", "download"}
+
+def _is_export_intent(message: str) -> bool:
+    words = set(message.lower().split())
+    return bool(words & EXPORT_KEYWORDS)
+
 
 @router.get("/api/messages/{document_id}")
 def get_messages(
@@ -54,6 +60,15 @@ def parse(
     ).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
+
+    if _is_export_intent(message):
+        reply = "Sure! Exporting your transcript to Excel now..."
+        db.add_all([
+            Message(user_email=current_user["username"], document_id=doc.id, sender="user", text=message),
+            Message(user_email=current_user["username"], document_id=doc.id, sender="ai", text=reply),
+        ])
+        db.commit()
+        return JSONResponse(content={"message": reply, "action": "export"})
 
     answer = query(message, f"{doc.user_email}_{doc.filename}", OPENAI_API_KEY)
 
