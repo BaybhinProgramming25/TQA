@@ -7,7 +7,7 @@ import './Login.css';
 const Login = () => {
 
   const { login } = useAuth();
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,7 +19,7 @@ const Login = () => {
 
     try {
       await login(email, password);
-      // navigate('/parse');
+      navigate('/parse');
     } catch (err) {
       const message = err.response?.data?.detail || 'Unable to login. Please try again.';
       setError(message);

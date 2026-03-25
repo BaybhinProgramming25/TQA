@@ -10,8 +10,7 @@ const PublicLayout = ({ children }) => {
           <span className="public-nav-logo-text">TQA</span>
         </Link>
         <nav className="public-nav-links">
-          <Link to="/contact">Contact</Link>
-          <Link to="/login">Login</Link>
+<Link to="/login">Login</Link>
           <Link to="/signup" className="public-nav-signup">Sign Up</Link>
         </nav>
       </header>
