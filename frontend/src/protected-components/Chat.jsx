@@ -59,6 +59,16 @@ const Chat = () => {
 
       const response = await api.post('/parse', formData);
 
+      if (response.data.action === 'export') {
+        const blob = await api.get(`/api/documents/${selectedDoc.id}/export`, { responseType: 'blob' });
+        const url = URL.createObjectURL(blob.data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = selectedDoc.filename.replace('.pdf', '.xlsx');
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
       const aiMessage = {
         id: Date.now() + 1,
         text: response.data.message,

@@ -48,6 +48,20 @@ const Sidebar = ({ onSelectDoc, selectedDoc }) => {
     }
   };
 
+  const handleExport = async (docId, filename) => {
+    try {
+      const response = await api.get(`/api/documents/${docId}/export`, { responseType: 'blob' });
+      const url = URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.replace('.pdf', '.xlsx');
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Failed to export document.');
+    }
+  };
+
   const handleDelete = async (docId) => {
     try {
       await api.delete(`/api/documents/${docId}`);
@@ -122,6 +136,13 @@ const Sidebar = ({ onSelectDoc, selectedDoc }) => {
               <span className="sidebar-document-name" title={doc.filename}>
                 {doc.filename}
               </span>
+              <button
+                className="sidebar-document-export"
+                onClick={(e) => { e.stopPropagation(); handleExport(doc.id, doc.filename); }}
+                title="Export to Excel"
+              >
+                ↓
+              </button>
               <button
                 className="sidebar-document-delete"
                 onClick={(e) => { e.stopPropagation(); handleDelete(doc.id); }}

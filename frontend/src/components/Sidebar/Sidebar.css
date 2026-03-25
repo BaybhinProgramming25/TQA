@@ -184,6 +184,23 @@
   flex: 1;
 }
 
+.sidebar-document-export {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.sidebar-document-export:hover {
+  color: var(--accent);
+  background-color: var(--accent-subtle);
+}
+
 .sidebar-document-delete {
   background: transparent;
   border: none;
