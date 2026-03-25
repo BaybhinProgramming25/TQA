@@ -5,7 +5,6 @@ import PublicLayout from './components/PublicLayout/PublicLayout'
 
 import PublicRoute from './public-components/PublicRoute'
 import Home from './public-components/Home/Home'
-import ContactUs from './public-components/ContactUs/ContactUs'
 import Login from './public-components/Login/Login'
 import SignUp from './public-components/SignUp/SignUp'
 import EmailSent from './public-components/VerifySent/VerifyEmailSent'
@@ -29,23 +28,19 @@ const App = () => {
             </PublicRoute>
           } />
 
-          <Route path="/contact" element={
+<Route path="/login" element={
             <PublicRoute>
               <PublicLayout>
-                <ContactUs />
+                <Login />
               </PublicLayout>
-            </PublicRoute>
-          } />
-
-          <Route path="/login" element={
-            <PublicRoute>
-              <Login />
             </PublicRoute>
           } />
 
           <Route path="/signup" element={
             <PublicRoute>
-              <SignUp />
+              <PublicLayout>
+                <SignUp />
+              </PublicLayout>
             </PublicRoute>
           } />
 
