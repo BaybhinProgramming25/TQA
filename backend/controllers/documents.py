@@ -35,7 +35,7 @@ def upload_document(
     user_dir = os.path.join(UPLOADS_DIR, user_email)
     os.makedirs(user_dir, exist_ok=True)
 
-    filepath = os.path.join(user_dir, file.filename)
+    filepath = os.path.join(user_dir, os.path.basename(file.filename))
 
     pdf_bytes = file.file.read()
     if not pdf_bytes.startswith(b"%PDF"):
