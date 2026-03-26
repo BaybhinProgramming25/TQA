@@ -37,7 +37,8 @@ export const AuthProvider = ({ children }) => {
     return response;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await api.post('/api/logout');
     setUser(null);
     deleteCookie(COOKIE_NAME);
   };
