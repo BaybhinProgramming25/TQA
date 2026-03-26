@@ -16,11 +16,6 @@ router = APIRouter()
 load_dotenv()
 
 
-@router.get("/api/health")
-def health_check():
-    return {"status": "ok"}, 200
-
-
 @router.post("/api/login")
 def login(data: LoginData, db: Session = Depends(get_db)):
 
@@ -53,6 +48,13 @@ def login(data: LoginData, db: Session = Depends(get_db)):
         max_age=3600
     )
     return response
+
+@router.post("/api/logout")
+def logout():
+    response = JSONResponse(content={"message": "Logged out"}, status_code=200)
+    response.delete_cookie(key="access_token", httponly=True, secure=True, samesite="lax")
+    return response
+
 
 @router.post("/api/signup")
 def signup(data: SignUpData, db: Session = Depends(get_db)):
