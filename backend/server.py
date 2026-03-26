@@ -1,11 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from controllers.user import router as user_router
 from controllers.documents import router as documents_router
 from controllers.qa import router as qa_router
 from database.database import engine, Base
+from helpers.limiter import limiter
 import os
 
 @asynccontextmanager
@@ -13,11 +17,13 @@ async def lifespan(app: FastAPI):
     os.makedirs("../mysql-data", exist_ok=True) 
     os.makedirs("/uploads", exist_ok=True)   
     os.makedirs("data", exist_ok=True)  
-    Base.metadata.create_all(bind=engine) # SQLAlchemy 
-    print('Tables Created!')
+    Base.metadata.create_all(bind=engine)
     yield 
 
 app = FastAPI(lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 origins = ["http://localhost:5173"]
 
