@@ -10,6 +10,7 @@ from controllers.documents import router as documents_router
 from controllers.qa import router as qa_router
 from database.database import engine, Base
 from helpers.limiter import limiter
+from sqlalchemy import text
 import os
 
 @asynccontextmanager
@@ -27,11 +28,6 @@ app.add_middleware(SlowAPIMiddleware)
 
 origins = ["http://localhost:5173"]
 
-codespace_name = os.environ.get("CODESPACE_NAME")
-if codespace_name:
-    origins.append(f"https://{codespace_name}-5173.app.github.dev")
-
-# For development purposes, create these settings
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -43,4 +39,14 @@ app.add_middleware(
 app.include_router(qa_router)
 app.include_router(user_router)
 app.include_router(documents_router)
+
+@app.get("/health")
+def health():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok"}
+    except Exception:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Database unavailable")
 
