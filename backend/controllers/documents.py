@@ -8,15 +8,17 @@ from helpers.getchunks import parse_pdf
 from helpers.limiter import limiter
 from rag import init_db, delete_index
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 import io
 import os
+import logging
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-UPLOADS_DIR = "/uploads"
+UPLOADS_DIR = os.getenv("UPLOADS_DIR", "/uploads")
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/api/documents")
@@ -58,8 +60,12 @@ def upload_document(
     db.commit()
     db.refresh(doc)
 
-    chunks = parse_pdf(pdf_bytes)
-    init_db(chunks, f"{user_email}_{file.filename}", OPENAI_API_KEY)
+    try:
+        chunks = parse_pdf(pdf_bytes)
+        init_db(chunks, f"{user_email}_{file.filename}", OPENAI_API_KEY)
+    except Exception as e:
+        logger.error("Failed to build FAISS index for user %s, file %s: %s", user_email, file.filename, e)
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
     return {
         "id": doc.id,
@@ -98,10 +104,13 @@ def export_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    with open(doc.filepath, "rb") as f:
-        pdf_bytes = f.read()
-
-    chunks = parse_pdf(pdf_bytes)
+    try:
+        with open(doc.filepath, "rb") as f:
+            pdf_bytes = f.read()
+        chunks = parse_pdf(pdf_bytes)
+    except Exception as e:
+        logger.error("Failed to read/parse PDF for doc %s: %s", doc_id, e)
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
     # Collect semester and course data in document order
     semesters = {}
@@ -122,19 +131,27 @@ def export_document(
     ws.title = "Transcript"
 
     # Styles
-    sem_font      = Font(bold=True, size=12)
-    header_font   = Font(bold=True)
-    gpa_font      = Font(bold=True, italic=True)
-    header_fill   = PatternFill("solid", fgColor="D9E1F2")
-    summary_fill  = PatternFill("solid", fgColor="E2EFDA")
-    center        = Alignment(horizontal="center")
+    sem_font = Font(bold=True, size=12)
+    header_font = Font(bold=True)
+    gpa_font = Font(bold=True, italic=True)
+    header_fill = PatternFill("solid", fgColor="D9E1F2")
+    summary_fill = PatternFill("solid", fgColor="E2EFDA")
+    center = Alignment(horizontal="center")
+    thin = Side(style="thin")
+    cell_border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    def apply_borders(start_row, end_row, start_col, end_col):
+        for r in range(start_row, end_row + 1):
+            for c in range(start_col, end_col + 1):
+                ws.cell(row=r, column=c).border = cell_border
 
     COURSE_HEADERS = ["Course", "Description", "Grade", "Credits Attempted", "Credits Earned", "Points"]
 
     row = 1
 
     for sem_label, sem_data in semesters.items():
-        # Semester header spanning all columns
+        sem_start = row
+
         ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=len(COURSE_HEADERS))
         cell = ws.cell(row=row, column=1, value=sem_label)
         cell.font = sem_font
@@ -142,7 +159,6 @@ def export_document(
         cell.alignment = center
         row += 1
 
-        # Column headers
         for col, h in enumerate(COURSE_HEADERS, 1):
             c = ws.cell(row=row, column=col, value=h)
             c.font = header_font
@@ -150,7 +166,6 @@ def export_document(
             c.alignment = center
         row += 1
 
-        # Course rows
         for course in sem_data["courses"]:
             ws.cell(row=row, column=1, value=course["course"])
             ws.cell(row=row, column=2, value=course["description"])
@@ -160,14 +175,17 @@ def export_document(
             ws.cell(row=row, column=6, value=course["points"]).alignment = center
             row += 1
 
-        # GPA summary row for this semester
         ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=3)
         gpa_cell = ws.cell(row=row, column=1, value=f"Term GPA: {sem_data['term_gpa']}   |   Cumulative GPA: {sem_data['cum_gpa']}")
         gpa_cell.font = gpa_font
         gpa_cell.alignment = center
+
+        apply_borders(sem_start, row, 1, len(COURSE_HEADERS))
         row += 2  # blank separator
 
     # Final summary table
+    summary_start = row
+
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=3)
     summary_title = ws.cell(row=row, column=1, value="GPA Summary")
     summary_title.font = Font(bold=True, size=12)
@@ -187,6 +205,17 @@ def export_document(
         ws.cell(row=row, column=2, value=sem_data["term_gpa"]).alignment = center
         ws.cell(row=row, column=3, value=sem_data["cum_gpa"]).alignment = center
         row += 1
+
+    # Average GPA row
+    term_gpas = [float(d["term_gpa"]) for d in semesters.values() if d["term_gpa"]]
+    avg_gpa = round(sum(term_gpas) / len(term_gpas), 3) if term_gpas else "N/A"
+    ws.cell(row=row, column=1, value="Average").font = Font(bold=True)
+    ws.cell(row=row, column=2, value=avg_gpa).alignment = center
+    ws.cell(row=row, column=2).font = Font(bold=True)
+    ws.cell(row=row, column=3, value="—").alignment = center
+
+    apply_borders(summary_start, row, 1, 3)
+    row += 1
 
     # Auto-fit column widths
     col_widths = [30, 40, 10, 20, 15, 10]
@@ -221,8 +250,8 @@ def delete_document(
         os.remove(doc.filepath)
 
     delete_index(f"{user_email}_{doc.filename}")
-    db.query(Message).filter(Message.document_id == doc_id).delete()
 
+    db.query(Message).filter(Message.document_id == doc_id).delete()
     db.delete(doc)
     db.commit()
 
