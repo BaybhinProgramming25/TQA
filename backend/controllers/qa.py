@@ -9,12 +9,13 @@ from helpers.limiter import limiter
 from rag import query
 
 import os
+import logging
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 EXPORT_KEYWORDS = {"export", "excel", "spreadsheet", "xlsx", "download"}
-
 def _is_export_intent(message: str) -> bool:
     words = set(message.lower().split())
     return bool(words & EXPORT_KEYWORDS)
@@ -73,7 +74,11 @@ def parse(
         db.commit()
         return JSONResponse(content={"message": reply, "action": "export"})
 
-    answer = query(message, f"{doc.user_email}_{doc.filename}", OPENAI_API_KEY)
+    try:
+        answer = query(message, f"{doc.user_email}_{doc.filename}", OPENAI_API_KEY)
+    except Exception as e:
+        logger.error("OpenAI query error for doc %s, user %s: %s", document_id, current_user["username"], e)
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
     db.add_all([
         Message(user_email=current_user["username"], document_id=doc.id, sender="user", text=message),
