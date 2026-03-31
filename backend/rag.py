@@ -1,4 +1,5 @@
 import os
+import logging
 from langchain_community.vectorstores import FAISS
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.documents import Document
@@ -6,8 +7,10 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
+logger = logging.getLogger(__name__)
 
-DATA_DIR = "data"
+
+DATA_DIR = os.getenv("DATA_DIR", "data")
 _embeddings: OpenAIEmbeddings | None = None
 
 
@@ -22,7 +25,6 @@ _index_cache: dict[str, FAISS] = {}
 
 
 
-
 def init_db(chunks: list[tuple[str, dict]], index_key: str, openai_api_key: str):
     """Embed chunks and save a FAISS index for the given document."""
 
@@ -30,18 +32,18 @@ def init_db(chunks: list[tuple[str, dict]], index_key: str, openai_api_key: str)
     index_path = os.path.join(DATA_DIR, f"faiss_index_{index_key}")
 
     if os.path.exists(index_path):
-        print(f"[cache hit] Index for {index_key} already exists, skipping")
+        logger.info("Index for %s already exists, skipping", index_key)
         return
 
     docs = [Document(page_content=chunk, metadata=metadata) for chunk, metadata in chunks]
 
-    print(f"[embedding] Embedding {len(docs)} chunks for {index_key}...")
+    logger.info("Embedding %d chunks for %s", len(docs), index_key)
     vector_store = FAISS.from_documents(docs, get_embeddings(openai_api_key))
 
-    print(f"[saving] Writing FAISS index to {index_path}")
+    logger.info("Writing FAISS index to %s", index_path)
     vector_store.save_local(index_path)
     del vector_store
-    print(f"[saved] Done")
+    logger.info("FAISS index saved for %s", index_key)
 
 
 
@@ -52,9 +54,9 @@ def load_db(index_key: str, openai_api_key: str) -> FAISS:
     if index_key not in _index_cache:
         index_path = os.path.join(DATA_DIR, f"faiss_index_{index_key}")
         _index_cache[index_key] = FAISS.load_local(index_path, get_embeddings(openai_api_key), allow_dangerous_deserialization=True)
-        print(f"[cache miss] Loaded index for {index_key} from disk")
+        logger.info("Loaded index for %s from disk", index_key)
     else:
-        print(f"[cache hit] Index for {index_key} already in memory")
+        logger.info("Index for %s already in memory", index_key)
 
     return _index_cache[index_key]
 
@@ -68,7 +70,7 @@ def delete_index(index_key: str):
     if os.path.exists(index_path):
         import shutil
         shutil.rmtree(index_path)
-        print(f"[deleted] Removed FAISS index at {index_path}")
+        logger.info("Removed FAISS index at %s", index_path)
 
     _index_cache.pop(index_key, None)
 
@@ -84,7 +86,8 @@ def query(question: str, index_key: str, openai_api_key: str) -> str:
     prompt = PromptTemplate.from_template("""
 You are a helpful assistant that answers questions about a student's academic transcript. \
 Use only the context provided to answer. Answer directly as if you were talking to a real student. \
-Start with the answer and only add relevant details if necessary \
+Start with the answer and be concise. \
+Answer in 1-2 sentences maximum. \
 If the answer is not in the context, say you don't know.
 
 Context:
