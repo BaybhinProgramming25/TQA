@@ -13,10 +13,6 @@ __pycache__/**
 # Ignore all possible node_modules
 */node_modules/
 
-# Ignore MySQL and Redis Data
-mysql-data/
-redis-data/
-
 # Ignore data folder in backend
 backend/data
 
