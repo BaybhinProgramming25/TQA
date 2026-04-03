@@ -22,6 +22,18 @@ jobs:
           source: "."
           target: "~/TQA"
       
+          
+      - name: Create backend .env
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+            host: ${{ secrets.EC2_HOST }}
+            username: ${{ secrets.EC2_USER }}
+            key: ${{ secrets.EC2_SSH_KEY }}
+            script: |
+              cat > ~/TQA/backend.env << 'EOF'
+              ${{ secrets.BACKEND_ENV }}
+              EOF 
+      
       - name: Deploy on cloud server 
         uses: appleboy/ssh-action@v1.0.3
         with:
