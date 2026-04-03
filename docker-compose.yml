@@ -1,8 +1,6 @@
 services:
   tqa-mysql:
     image: mysql
-    ports:
-      - "3306:3306"
     env_file:
       - ./backend/.env
     healthcheck:
@@ -22,13 +20,13 @@ services:
       dockerfile: Dockerfile 
     env_file:
       - ./backend/.env
-    ports:
-      - "127.0.0.1:3000:3000"
     depends_on:
       tqa-mysql:
         condition: service_healthy
     volumes:
       - uploads-data:/uploads
+    ports: 
+      - "127.0.0.1:3000:3000"
     networks:
       - tqa
 
@@ -40,7 +38,7 @@ services:
     env_file:
       - ./frontend/.env
     ports:
-      - "5173:5173"
+      - "127.0.0.1:8080:80"
     networks:
       - tqa  
 
