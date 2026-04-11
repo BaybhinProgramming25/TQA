@@ -9,7 +9,7 @@ const Home = () => {
         <h1 className="home-hero-title">Your Transcript, Answered Instantly</h1>
         <p className="home-hero-sub">
           Transcript QA lets Stony Brook CS students upload their transcripts and ask any question
-          about their academic records — powered by AI.
+          about their academic records.
         </p>
         <div className="home-hero-ctas">
           <Link to="/signup" className="home-cta home-cta--primary">Get Started</Link>
