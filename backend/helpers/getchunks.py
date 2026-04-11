@@ -11,7 +11,7 @@ def parse_pdf(file_bytes) -> list[str]:
     for page in doc:
         text = page.get_text("text").strip("").split("\n")
         pdf_pages_list.extend(text)
-    pdf_pages_list = [" ".join(line.split()) for line in pdf_pages_list if line.strip()]
+    pdf_pages_list = [sanitize_text(" ".join(line.split())) for line in pdf_pages_list if line.strip()]
     
     all_chunks =  [
         *get_sem_level_chunks(pdf_pages_list),
@@ -20,6 +20,15 @@ def parse_pdf(file_bytes) -> list[str]:
     ]
 
     return all_chunks
+
+
+def sanitize_text(text: str) -> str: 
+
+    text = re.sub(r'<script.*?>.*?</script>', '', text, flags=re.DOTALL)
+    text = re.sub(r'(rm -rf|sudo|chmod|curl|wget|bash|sh -c).*', '', text)
+    text = text.encode('ascii', 'ignore').decode('ascii')
+    text = re.sub(r'[^\w\s.,;:!?\-\'\"()/]', '', text)
+    return text.strip()
 
 
 
