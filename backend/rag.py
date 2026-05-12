@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 DATA_DIR = os.getenv("DATA_DIR", "data")
 _embeddings: OpenAIEmbeddings | None = None
+_index_cache: dict[str, FAISS] = {}
 
 
 def get_embeddings(openai_api_key: str) -> OpenAIEmbeddings:
@@ -19,10 +20,6 @@ def get_embeddings(openai_api_key: str) -> OpenAIEmbeddings:
     if _embeddings is None:
         _embeddings = OpenAIEmbeddings(api_key=openai_api_key, model="text-embedding-3-large")
     return _embeddings
-
-
-_index_cache: dict[str, FAISS] = {}
-
 
 
 def init_db(chunks: list[tuple[str, dict]], index_key: str, openai_api_key: str):

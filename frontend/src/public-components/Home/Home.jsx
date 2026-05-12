@@ -20,7 +20,6 @@ const Home = () => {
       {/* Feature cards */}
       <section className="home-features">
         <div className="home-feature-card">
-          <div className="home-feature-icon">📄</div>
           <h2>Upload Your Transcript</h2>
           <p>
             Upload a PDF of your Stony Brook transcript and TQA will instantly parse
@@ -29,7 +28,6 @@ const Home = () => {
         </div>
 
         <div className="home-feature-card">
-          <div className="home-feature-icon">💬</div>
           <h2>Ask Natural Language Questions</h2>
           <p>
             Ask anything about your transcript in plain English — like "What's my GPA?",
@@ -38,7 +36,6 @@ const Home = () => {
         </div>
 
         <div className="home-feature-card">
-          <div className="home-feature-icon">📤</div>
           <h2>Export Your Transcript</h2>
           <p>
             Need a formatted copy? Just ask TQA to export your transcript and get a

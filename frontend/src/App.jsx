@@ -26,7 +26,7 @@ const App = () => {
             </PublicRoute>
           } />
 
-<Route path="/login" element={
+          <Route path="/login" element={
             <PublicRoute>
               <PublicLayout>
                 <Login />
@@ -42,7 +42,7 @@ const App = () => {
             </PublicRoute>
           } />
 
-<Route path="/parse" element={
+          <Route path="/parse" element={
             <ProtectedRoute>
               <Chat />
             </ProtectedRoute>
