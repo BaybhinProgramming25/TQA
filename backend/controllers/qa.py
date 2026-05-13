@@ -62,6 +62,33 @@ def get_messages(document_id: int, db: Session = Depends(get_db), current_user: 
         for m in messages
     ]
 
+@router.delete("/api/messages/{document_id}")
+def clear_messages(document_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+
+    try:
+        doc = db.query(Document).filter(
+            Document.id == document_id,
+            Document.user_email == current_user["username"]
+        ).first()
+    except SQLAlchemyError:
+        raise HTTPException(status_code=500, detail="Database error")
+
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    try:
+        db.query(Message).filter(
+            Message.document_id == document_id,
+            Message.user_email == current_user["username"]
+        ).delete()
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Database error")
+
+    return {"message": "Chat cleared"}
+
+
 @router.post("/parse")
 @limiter.limit("10/minute")
 async def parse(request: Request, message: str = Form(...), document_id: int = Form(...), db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):

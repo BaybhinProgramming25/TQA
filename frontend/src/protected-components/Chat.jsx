@@ -139,6 +139,16 @@ const Chat = () => {
     el.style.height = Math.min(el.scrollHeight, 160) + 'px';
   };
 
+  const handleClearChat = async () => {
+    if (!selectedDoc) return;
+    try {
+      await api.delete(`/api/messages/${selectedDoc.id}`);
+      setMessages([]);
+    } catch {
+      // silently fail
+    }
+  };
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isEmpty = messages.length === 0;
 
@@ -191,6 +201,9 @@ const Chat = () => {
         {selectedDoc && (
           <div className="chat-doc-banner chat-doc-banner--desktop">
             <span>📄 {selectedDoc.filename}</span>
+            <button className="chat-doc-banner-close" onClick={handleClearChat}>
+              Clear chat
+            </button>
           </div>
         )}
 
