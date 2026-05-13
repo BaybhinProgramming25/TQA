@@ -9,6 +9,7 @@ from database.models import Document, Message
 from helpers.jwt import get_current_user
 from helpers.limiter import limiter
 from rag import query_stream
+from langchain_core.messages import HumanMessage, AIMessage
 
 import os
 import json
@@ -98,10 +99,27 @@ async def parse(request: Request, message: str = Form(...), document_id: int = F
 
         return StreamingResponse(export_stream(), media_type="text/event-stream")
 
+    history = []
+    try:
+        recent = (
+            db.query(Message)
+            .filter(Message.document_id == doc.id, Message.user_email == current_user["username"])
+            .order_by(Message.created_at.desc())
+            .limit(10)
+            .all()
+        )
+        for m in reversed(recent):
+            if m.sender == "user":
+                history.append(HumanMessage(content=m.text))
+            else:
+                history.append(AIMessage(content=m.text))
+    except SQLAlchemyError:
+        history = []
+
     async def rag_stream():
         full_answer = []
         try:
-            async for chunk in query_stream(message, f"{doc.user_email}_{doc.filename}", OPENAI_API_KEY, ANTHROPIC_API_KEY):
+            async for chunk in query_stream(message, f"{doc.user_email}_{doc.filename}", OPENAI_API_KEY, ANTHROPIC_API_KEY, history):
                 full_answer.append(chunk)
                 yield f"data: {json.dumps({'token': chunk})}\n\n"
         except Exception as e:

@@ -4,9 +4,9 @@ from langchain_community.vectorstores import FAISS
 from langchain_anthropic import ChatAnthropic
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
 
 logger = logging.getLogger(__name__)
 
@@ -75,48 +75,36 @@ def delete_index(index_key: str):
 
 
 
-PROMPT = PromptTemplate.from_template("""
-You are a helpful assistant that answers questions about a student's academic transcript. \
+PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """You are a helpful assistant that answers questions about a student's academic transcript. \
 Use only the context provided to answer. Answer directly as if you were talking to a real student. \
 Start with the answer and be concise. \
 Answer in 1-2 sentences maximum. \
 If the answer is not in the context, say you don't know.
 
 Context:
-{context}
-
-Question: {question}
-
-Answer:""")
-
-
-def query(question: str, index_key: str, openai_api_key: str, anthropic_api_key: str) -> str:
-    """Retrieve relevant chunks and answer the question using the LLM."""
-
-    vector_store = load_db(index_key, openai_api_key)
-    retriever = vector_store.as_retriever(search_kwargs={"k": 5})
-    llm = ChatAnthropic(api_key=anthropic_api_key, model="claude-sonnet-4-6", temperature=0)
-    chain = (
-        {"context": retriever, "question": RunnablePassthrough()}
-        | PROMPT
-        | llm
-        | StrOutputParser()
-    )
-    return chain.invoke(question)
+{context}"""),
+    MessagesPlaceholder(variable_name="history"),
+    ("human", "{question}"),
+])
 
 
-async def query_stream(question: str, index_key: str, openai_api_key: str, anthropic_api_key: str):
+async def query_stream(question: str, index_key: str, openai_api_key: str, anthropic_api_key: str, history: list = []):
     """Stream the answer token by token."""
 
     vector_store = load_db(index_key, openai_api_key)
     retriever = vector_store.as_retriever(search_kwargs={"k": 5})
     llm = ChatAnthropic(api_key=anthropic_api_key, model="claude-sonnet-4-6", temperature=0)
     chain = (
-        {"context": retriever, "question": RunnablePassthrough()}
+        {
+            "context": lambda x: retriever.invoke(x["question"]),
+            "question": lambda x: x["question"],
+            "history": lambda x: x["history"],
+        }
         | PROMPT
         | llm
         | StrOutputParser()
     )
-    async for chunk in chain.astream(question):
+    async for chunk in chain.astream({"question": question, "history": history}):
         yield chunk
 
