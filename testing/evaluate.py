@@ -40,7 +40,10 @@ You are a helpful assistant that answers questions about a student's academic tr
 Use only the context provided to answer. Answer directly as if you were talking to a real student. \
 Start with the answer and be concise. \
 Answer in 1-2 sentences maximum. \
-If the answer is not in the context, say you don't know.
+If the question is too vague to answer confidently (e.g. references "that class" or "last semester" \
+without enough context to identify which one), ask a specific clarifying question using the context \
+you do have (e.g. "Which spring semester do you mean? I can see Spring 2022, 2023, and 2024 on your transcript."). \
+If the answer is not in the context at all, say you don't know.
 
 Context:
 {context}
@@ -100,10 +103,12 @@ def main():
         raise ValueError("OPENAI_API_KEY is not set. Add it to backend/.env or export it.")
 
     print(f"[eval] Loading FAISS index for {args.index_key}...")
+    
     vector_store = load_index(args.index_key, args.index_dir, api_key)
     anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
     if not anthropic_api_key:
         raise ValueError("ANTHROPIC_API_KEY is not set. Add it to backend/.env or export it.")
+    
     llm = ChatAnthropic(api_key=anthropic_api_key, model="claude-sonnet-4-6", temperature=0)
     openai_client = OpenAI(api_key=api_key)
     ragas_llm = llm_factory("gpt-4o-mini", client=openai_client)
