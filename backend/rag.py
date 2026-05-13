@@ -75,7 +75,13 @@ def delete_index(index_key: str):
 
 
 
-PROMPT = ChatPromptTemplate.from_messages([
+CLASSIFY_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """You are a classifier. Determine if the question is related to an academic transcript, courses, grades, GPA, credits, semesters, or academic records.
+Answer only "yes" or "no". Nothing else."""),
+    ("human", "{question}"),
+])
+
+RAG_PROMPT = ChatPromptTemplate.from_messages([
     ("system", """You are a helpful assistant that answers questions about a student's academic transcript. \
 Use only the context provided to answer. Answer directly as if you were talking to a real student. \
 Start with the answer and be concise. \
@@ -88,27 +94,44 @@ Context:
     ("human", "{question}"),
 ])
 
+CHAT_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", "You are a friendly assistant. Answer conversationally and concisely in 1-2 sentences."),
+    MessagesPlaceholder(variable_name="history"),
+    ("human", "{question}"),
+])
+
 
 async def query_stream(question: str, index_key: str, openai_api_key: str, anthropic_api_key: str, history: list = []):
-    """Stream the answer token by token, yielding sources first."""
+    """Classify the question, then stream the answer with or without RAG."""
+
+    llm = ChatAnthropic(api_key=anthropic_api_key, model="claude-sonnet-4-6", temperature=0)
+
+    classify_chain = CLASSIFY_PROMPT | llm | StrOutputParser()
+    classification = (await classify_chain.ainvoke({"question": question})).strip().lower()
+    is_transcript_question = classification.startswith("yes")
+
+    if not is_transcript_question:
+        yield ("sources", [])
+        chat_chain = CHAT_PROMPT | llm | StrOutputParser()
+        async for chunk in chat_chain.astream({"question": question, "history": history}):
+            yield ("token", chunk)
+        return
 
     vector_store = load_db(index_key, openai_api_key)
     retriever = vector_store.as_retriever(search_kwargs={"k": 5})
-
     retrieved_docs = retriever.invoke(question)
     pages = sorted(set(
         doc.metadata["page"] for doc in retrieved_docs if doc.metadata.get("page")
     ))
     yield ("sources", pages)
 
-    llm = ChatAnthropic(api_key=anthropic_api_key, model="claude-sonnet-4-6", temperature=0)
     chain = (
         {
             "context": lambda x: retrieved_docs,
             "question": lambda x: x["question"],
             "history": lambda x: x["history"],
         }
-        | PROMPT
+        | RAG_PROMPT
         | llm
         | StrOutputParser()
     )
