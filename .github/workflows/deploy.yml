@@ -23,6 +23,14 @@ jobs:
           target: "~/TQA"
       
           
+      - name: Remove testing folder from server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: rm -rf ~/TQA/testing
+
       - name: Create backend .env
         uses: appleboy/ssh-action@v1.0.3
         with:

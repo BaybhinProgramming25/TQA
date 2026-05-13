@@ -31,44 +31,96 @@ const Chat = () => {
     formData.append('message', inputValue);
     formData.append('document_id', selectedDoc.id);
 
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+
     try {
-      setMessages(prev => [...prev, userMessage]);
-      setInputValue('');
-      setIsLoading(true);
+      const response = await fetch('/parse', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
 
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+      if (!response.ok) throw new Error('Request failed');
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      const aiMessageId = Date.now() + 1;
+      let buffer = '';
+      let streamStarted = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const raw = line.slice(6).trim();
+          if (raw === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(raw);
+
+            if (parsed.action === 'export') {
+              setIsLoading(false);
+              const blob = await api.get(`/api/documents/${selectedDoc.id}/export`, { responseType: 'blob' });
+              const url = URL.createObjectURL(blob.data);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = selectedDoc.filename.replace('.pdf', '.xlsx');
+              a.click();
+              URL.revokeObjectURL(url);
+              setMessages(prev => [...prev, {
+                id: aiMessageId,
+                text: parsed.message,
+                sender: 'ai',
+                timestamp: new Date().toLocaleTimeString(),
+              }]);
+            } else if (parsed.error) {
+              setIsLoading(false);
+              setMessages(prev => [...prev, {
+                id: aiMessageId,
+                text: 'Sorry, I am unable to answer that. Please try something else',
+                sender: 'ai',
+                timestamp: new Date().toLocaleTimeString(),
+              }]);
+            } else if (parsed.token !== undefined) {
+              if (!streamStarted) {
+                streamStarted = true;
+                setIsLoading(false);
+                setMessages(prev => [...prev, {
+                  id: aiMessageId,
+                  text: parsed.token,
+                  sender: 'ai',
+                  timestamp: new Date().toLocaleTimeString(),
+                }]);
+              } else {
+                setMessages(prev => prev.map(m =>
+                  m.id === aiMessageId ? { ...m, text: m.text + parsed.token } : m
+                ));
+              }
+            }
+          } catch {
+            // ignore malformed events
+          }
+        }
       }
-
-      const response = await api.post('/parse', formData);
-
-      if (response.data.action === 'export') {
-        const blob = await api.get(`/api/documents/${selectedDoc.id}/export`, { responseType: 'blob' });
-        const url = URL.createObjectURL(blob.data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = selectedDoc.filename.replace('.pdf', '.xlsx');
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-
-      const aiMessage = {
-        id: Date.now() + 1,
-        text: response.data.message,
-        sender: 'ai',
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setMessages(prev => [...prev, aiMessage]);
-      setIsLoading(false);
     } catch {
-      const aiMessage = {
+      setIsLoading(false);
+      setMessages(prev => [...prev, {
         id: Date.now() + 1,
         text: 'Sorry, I am unable to answer that. Please try something else',
         sender: 'ai',
-        timestamp: new Date().toLocaleTimeString()
-      };
-      setMessages(prev => [...prev, aiMessage]);
-      setIsLoading(false);
+        timestamp: new Date().toLocaleTimeString(),
+      }]);
     }
   };
 
