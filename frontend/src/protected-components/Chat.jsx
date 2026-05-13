@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import api from '../api/index.js';
 
 import Sidebar from '../components/Sidebar/Sidebar';
@@ -214,7 +215,7 @@ const Chat = () => {
                   <div className="message-avatar">T</div>
                 )}
                 <div className="message-bubble">
-                  <p className="message-text">{message.text}</p>
+                  <div className="message-text"><ReactMarkdown>{message.text}</ReactMarkdown></div>
                   {message.files && (
                     <div className="message-files">
                       {message.files.map(file => (
