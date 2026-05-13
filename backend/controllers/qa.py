@@ -146,9 +146,12 @@ async def parse(request: Request, message: str = Form(...), document_id: int = F
     async def rag_stream():
         full_answer = []
         try:
-            async for chunk in query_stream(message, f"{doc.user_email}_{doc.filename}", OPENAI_API_KEY, ANTHROPIC_API_KEY, history):
-                full_answer.append(chunk)
-                yield f"data: {json.dumps({'token': chunk})}\n\n"
+            async for kind, content in query_stream(message, f"{doc.user_email}_{doc.filename}", OPENAI_API_KEY, ANTHROPIC_API_KEY, history):
+                if kind == "sources":
+                    yield f"data: {json.dumps({'sources': content})}\n\n"
+                elif kind == "token":
+                    full_answer.append(content)
+                    yield f"data: {json.dumps({'token': content})}\n\n"
         except Exception as e:
             logger.error("Stream error for doc %s, user %s: %s", document_id, current_user["username"], e)
             yield f"data: {json.dumps({'error': True})}\n\n"

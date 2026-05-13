@@ -90,14 +90,21 @@ Context:
 
 
 async def query_stream(question: str, index_key: str, openai_api_key: str, anthropic_api_key: str, history: list = []):
-    """Stream the answer token by token."""
+    """Stream the answer token by token, yielding sources first."""
 
     vector_store = load_db(index_key, openai_api_key)
     retriever = vector_store.as_retriever(search_kwargs={"k": 5})
+
+    retrieved_docs = retriever.invoke(question)
+    pages = sorted(set(
+        doc.metadata["page"] for doc in retrieved_docs if doc.metadata.get("page")
+    ))
+    yield ("sources", pages)
+
     llm = ChatAnthropic(api_key=anthropic_api_key, model="claude-sonnet-4-6", temperature=0)
     chain = (
         {
-            "context": lambda x: retriever.invoke(x["question"]),
+            "context": lambda x: retrieved_docs,
             "question": lambda x: x["question"],
             "history": lambda x: x["history"],
         }
@@ -106,5 +113,5 @@ async def query_stream(question: str, index_key: str, openai_api_key: str, anthr
         | StrOutputParser()
     )
     async for chunk in chain.astream({"question": question, "history": history}):
-        yield chunk
+        yield ("token", chunk)
 

@@ -84,6 +84,17 @@ const Chat = () => {
                 text: parsed.message,
                 sender: 'ai',
                 timestamp: new Date().toLocaleTimeString(),
+                sources: [],
+              }]);
+            } else if (parsed.sources !== undefined) {
+              streamStarted = true;
+              setIsLoading(false);
+              setMessages(prev => [...prev, {
+                id: aiMessageId,
+                text: '',
+                sender: 'ai',
+                timestamp: new Date().toLocaleTimeString(),
+                sources: parsed.sources,
               }]);
             } else if (parsed.error) {
               setIsLoading(false);
@@ -92,6 +103,7 @@ const Chat = () => {
                 text: 'Sorry, I am unable to answer that. Please try something else',
                 sender: 'ai',
                 timestamp: new Date().toLocaleTimeString(),
+                sources: [],
               }]);
             } else if (parsed.token !== undefined) {
               if (!streamStarted) {
@@ -102,6 +114,7 @@ const Chat = () => {
                   text: parsed.token,
                   sender: 'ai',
                   timestamp: new Date().toLocaleTimeString(),
+                  sources: [],
                 }]);
               } else {
                 setMessages(prev => prev.map(m =>
@@ -150,6 +163,7 @@ const Chat = () => {
   };
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pdfPanel, setPdfPanel] = useState({ open: false, page: null });
   const isEmpty = messages.length === 0;
 
   const handleSelectDoc = async (doc) => {
@@ -229,6 +243,19 @@ const Chat = () => {
                 )}
                 <div className="message-bubble">
                   <div className="message-text"><ReactMarkdown>{message.text}</ReactMarkdown></div>
+                  {message.sender === 'ai' && message.sources && message.sources.length > 0 && (
+                    <div className="message-sources">
+                      {message.sources.map(page => (
+                        <button
+                          key={page}
+                          className="source-badge"
+                          onClick={() => setPdfPanel({ open: true, page })}
+                        >
+                          p.{page}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {message.files && (
                     <div className="message-files">
                       {message.files.map(file => (
@@ -289,6 +316,19 @@ const Chat = () => {
           </p>
         </div>
       </div>
+      {pdfPanel.open && selectedDoc && (
+        <div className="pdf-panel">
+          <div className="pdf-panel-header">
+            <span>Source — p.{pdfPanel.page}</span>
+            <button className="pdf-panel-close" onClick={() => setPdfPanel({ open: false, page: null })}>✕</button>
+          </div>
+          <iframe
+            className="pdf-panel-frame"
+            src={`/api/documents/${selectedDoc.id}/file#page=${pdfPanel.page}`}
+            title="Source PDF"
+          />
+        </div>
+      )}
     </div>
   );
 };

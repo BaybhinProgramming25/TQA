@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from database.database import get_db
@@ -114,6 +114,23 @@ def list_documents(db: Session = Depends(get_db), current_user: dict = Depends(g
         }
         for doc in docs
     ]
+
+
+@router.get("/api/documents/{doc_id}/file")
+def get_document_file(doc_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+
+    user_email = current_user["username"]
+    try:
+        doc = db.query(Document).filter(Document.id == doc_id, Document.user_email == user_email).first()
+    except SQLAlchemyError:
+        raise HTTPException(status_code=500, detail="Database error")
+
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if not os.path.exists(doc.filepath):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(doc.filepath, media_type="application/pdf")
 
 
 @router.get("/api/documents/{doc_id}/export")

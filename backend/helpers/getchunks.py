@@ -3,20 +3,25 @@ import fitz
 
 from helpers.constants import SEASONS, AVOIDED_CLASSES, TRANSFER_FORMARTS, TERMINATING_WORDS, GRADES_VALUE_MAPPING, MATH_PLACEMENT_MAPPING
 
-def parse_pdf(file_bytes) -> list[str]:
+def parse_pdf(file_bytes) -> list[tuple[str, dict]]:
 
     doc = fitz.open(stream=file_bytes, filetype="pdf")
 
     pdf_pages_list = []
-    for page in doc:
-        text = page.get_text("text").strip("").split("\n")
-        pdf_pages_list.extend(text)
-    pdf_pages_list = [sanitize_text(" ".join(line.split())) for line in pdf_pages_list if line.strip()]
-    
-    all_chunks =  [
-        *get_sem_level_chunks(pdf_pages_list),
-        *get_course_level_chunks(pdf_pages_list),
-        *get_student_info_chunks(pdf_pages_list),
+    page_number_map = []
+
+    for page_num, page in enumerate(doc, start=1):
+        lines = page.get_text("text").strip().split("\n")
+        for line in lines:
+            cleaned = sanitize_text(" ".join(line.split()))
+            if cleaned:
+                pdf_pages_list.append(cleaned)
+                page_number_map.append(page_num)
+
+    all_chunks = [
+        *get_sem_level_chunks(pdf_pages_list, page_number_map),
+        *get_course_level_chunks(pdf_pages_list, page_number_map),
+        *get_student_info_chunks(pdf_pages_list, page_number_map),
     ]
 
     return all_chunks
@@ -32,7 +37,7 @@ def sanitize_text(text: str) -> str:
 
 
 
-def get_sem_level_chunks(pdf_pages_list: list[str]) -> list[tuple[str, dict]]:
+def get_sem_level_chunks(pdf_pages_list: list[str], page_number_map: list[int]) -> list[tuple[str, dict]]:
 
     semester_indices = _get_semester_indices(pdf_pages_list)
 
@@ -56,6 +61,7 @@ def get_sem_level_chunks(pdf_pages_list: list[str]) -> list[tuple[str, dict]]:
         )
         metadata = {
             "type": "semester",
+            "page": page_number_map[start],
             "semester": label,
             "duration": duration,
             "term_gpa": term_gpa,
@@ -140,7 +146,7 @@ def _get_gpa_after_keyword(data: list[str], keyword: str) -> float:
 
 
 
-def get_course_level_chunks(pdf_pages_list: list[str]) -> list[tuple[str, dict]]:
+def get_course_level_chunks(pdf_pages_list: list[str], page_number_map: list[int]) -> list[tuple[str, dict]]:
 
     semester_indices = _get_semester_indices(pdf_pages_list)
 
@@ -149,7 +155,7 @@ def get_course_level_chunks(pdf_pages_list: list[str]) -> list[tuple[str, dict]]
         label, start = semester_indices[i]
         end = semester_indices[i + 1][1] if i + 1 < len(semester_indices) else len(pdf_pages_list)
         data = pdf_pages_list[start:end]
-        course_chunks.extend(_extract_course_chunks(data, label))
+        course_chunks.extend(_extract_course_chunks(data, label, page_number_map, start))
 
     return course_chunks
 
@@ -193,7 +199,7 @@ def _is_terminator(value: str) -> bool:
     return any(term in value for term in TERMINATING_WORDS)
 
 
-def _extract_course_chunks(data: list[str], semester_label: str) -> list[tuple[str, dict]]:
+def _extract_course_chunks(data: list[str], semester_label: str, page_number_map: list[int] = None, offset: int = 0) -> list[tuple[str, dict]]:
 
     chunks = []
     i = 0
@@ -241,6 +247,7 @@ def _extract_course_chunks(data: list[str], semester_label: str) -> list[tuple[s
             )
             metadata = {
                 "type": "course",
+                "page": page_number_map[offset + i] if page_number_map else None,
                 "course": course,
                 "semester": semester_label,
                 "description": description,
@@ -258,7 +265,7 @@ def _extract_course_chunks(data: list[str], semester_label: str) -> list[tuple[s
     return chunks
 
 
-def get_student_info_chunks(pdf_pages_list: list[str]) -> list[tuple[str, dict]]:
+def get_student_info_chunks(pdf_pages_list: list[str], page_number_map: list[int]) -> list[tuple[str, dict]]:
 
     name = _get_field_after_keyword(pdf_pages_list, "Name:")
     student_id = _get_field_after_keyword(pdf_pages_list, "Student ID:")
@@ -297,6 +304,7 @@ def get_student_info_chunks(pdf_pages_list: list[str]) -> list[tuple[str, dict]]
 
     metadata_student = {
         "type": "student",
+        "page": 1,
         "name": name,
         "student_id": student_id,
         "university": "Stony Brook University",
@@ -311,6 +319,7 @@ def get_student_info_chunks(pdf_pages_list: list[str]) -> list[tuple[str, dict]]
 
     metadata_total = {
         "type": "total",
+        "page": 1,
         "total_semesters": total_semesters,
         "total_courses": total_courses
     }
