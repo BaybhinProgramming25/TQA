@@ -27,3 +27,6 @@ backend/uploads
 
 # Ignore main.py used for backend testing
 backend/main.py
+
+# Ignore testing results
+testing/results.json
