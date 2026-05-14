@@ -120,9 +120,8 @@ async def query_stream(question: str, index_key: str, openai_api_key: str, anthr
     vector_store = load_db(index_key, openai_api_key)
     retriever = vector_store.as_retriever(search_kwargs={"k": 5})
     retrieved_docs = retriever.invoke(question)
-    pages = sorted(set(
-        doc.metadata["page"] for doc in retrieved_docs if doc.metadata.get("page")
-    ))
+    top_page = retrieved_docs[0].metadata.get("page") if retrieved_docs else None
+    pages = [top_page] if top_page else []
     yield ("sources", pages)
 
     chain = (
