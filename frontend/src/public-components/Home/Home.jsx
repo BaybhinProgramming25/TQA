@@ -23,15 +23,15 @@ const Home = () => {
           <h2>Upload Your Transcript</h2>
           <p>
             Upload a PDF of your Stony Brook transcript and TQA will instantly parse
-            and analyze it — no account linking required, just drag and drop.
+            and analyze it — simply signup and begin asking.
           </p>
         </div>
 
         <div className="home-feature-card">
           <h2>Ask Natural Language Questions</h2>
           <p>
-            Ask anything about your transcript in plain English — like "What's my GPA?",
-            "How many credits do I have?", or "Did I pass all my major requirements?"
+            Ask anything about your transcript in plain English — like "What's my cumulative GPA?",
+            "What is this class about?", or "What grade did I earn in this class?"
           </p>
         </div>
 
