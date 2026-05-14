@@ -117,7 +117,8 @@ def list_documents(db: Session = Depends(get_db), current_user: dict = Depends(g
 
 
 @router.get("/api/documents/{doc_id}/file")
-def get_document_file(doc_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+@limiter.limit("20/minute")
+def get_document_file(request: Request, doc_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
 
     user_email = current_user["username"]
     try:
@@ -134,7 +135,8 @@ def get_document_file(doc_id: int, db: Session = Depends(get_db), current_user: 
 
 
 @router.get("/api/documents/{doc_id}/export")
-def export_document(doc_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+@limiter.limit("5/minute")
+def export_document(request: Request, doc_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
 
 
     user_email = current_user["username"]
