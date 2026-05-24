@@ -10,8 +10,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 from dotenv import load_dotenv
 load_dotenv(BACKEND_DIR / ".env")
 
-from langchain_anthropic import ChatAnthropic
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -63,7 +62,7 @@ def load_index(index_key: str, index_dir: str, api_key: str) -> FAISS:
     return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
 
 
-def retrieve_and_answer(question: str, vector_store: FAISS, llm: ChatAnthropic) -> tuple[str, list[str]]:
+def retrieve_and_answer(question: str, vector_store: FAISS, llm: ChatOpenAI) -> tuple[str, list[str]]:
     retriever = vector_store.as_retriever(search_kwargs={"k": 5})
 
     retrieved_docs = retriever.invoke(question)
@@ -102,11 +101,7 @@ def main():
     print(f"[eval] Loading FAISS index for {args.index_key}...")
     
     vector_store = load_index(args.index_key, args.index_dir, api_key)
-    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not anthropic_api_key:
-        raise ValueError("ANTHROPIC_API_KEY is not set. Add it to backend/.env or export it.")
-    
-    llm = ChatAnthropic(api_key=anthropic_api_key, model="claude-sonnet-4-6", temperature=0)
+    llm = ChatOpenAI(api_key=api_key, model="gpt-4o-mini", temperature=0)
     openai_client = OpenAI(api_key=api_key)
     ragas_llm = llm_factory("gpt-4o-mini", client=openai_client)
     ragas_embeddings = LangchainEmbeddingsWrapper(OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large"))

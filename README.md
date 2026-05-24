@@ -11,7 +11,7 @@ A RAG-powered web application that lets Stony Brook CS students upload their aca
 | Database | MySQL + SQLAlchemy |
 | Vector Store | FAISS |
 | Embeddings | OpenAI `text-embedding-3-large` |
-| LLM | Claude Sonnet (`claude-sonnet-4-6`) |
+| LLM | OpenAI `gpt-4o-mini` |
 | RAG Framework | LangChain |
 | Auth | JWT + bcrypt |
 | Infrastructure | Docker + Docker Compose |
@@ -51,7 +51,6 @@ Browser → Frontend container (React)
 
 - Docker + Docker Compose
 - OpenAI API key
-- Anthropic API key
 
 ### Environment Variables
 
@@ -61,7 +60,6 @@ Create a `backend/.env` file:
 JWT_SECRET_KEY=your-secret-key
 
 OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
 
 MYSQL_ROOT_PASSWORD=yourpassword
 MYSQL_DATABASE=yourdbname

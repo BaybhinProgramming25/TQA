@@ -1,8 +1,7 @@
 import os
 import logging
 from langchain_community.vectorstores import FAISS
-from langchain_anthropic import ChatAnthropic
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
@@ -101,10 +100,10 @@ CHAT_PROMPT = ChatPromptTemplate.from_messages([
 ])
 
 
-async def query_stream(question: str, index_key: str, openai_api_key: str, anthropic_api_key: str, history: list = []):
+async def query_stream(question: str, index_key: str, openai_api_key: str, history: list = []):
     """Classify the question, then stream the answer with or without RAG."""
 
-    llm = ChatAnthropic(api_key=anthropic_api_key, model="claude-sonnet-4-6", temperature=0)
+    llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4o-mini", temperature=0)
 
     classify_chain = CLASSIFY_PROMPT | llm | StrOutputParser()
     classification = (await classify_chain.ainvoke({"question": question})).strip().lower()

@@ -16,7 +16,6 @@ import json
 import logging
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
@@ -146,7 +145,7 @@ async def parse(request: Request, message: str = Form(...), document_id: int = F
     async def rag_stream():
         full_answer = []
         try:
-            async for kind, content in query_stream(message, f"{doc.user_email}_{doc.filename}", OPENAI_API_KEY, ANTHROPIC_API_KEY, history):
+            async for kind, content in query_stream(message, f"{doc.user_email}_{doc.filename}", OPENAI_API_KEY, history):
                 if kind == "sources":
                     yield f"data: {json.dumps({'sources': content})}\n\n"
                 elif kind == "token":
