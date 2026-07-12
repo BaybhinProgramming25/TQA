@@ -1,4 +1,4 @@
-# TQA — Transcript Q&A
+# TranscriptQA
 
 A RAG-powered web application that lets Stony Brook CS students upload their academic transcripts and ask natural language questions about their records. Answers are grounded in the transcript content via semantic search and streamed back in real time.
 
