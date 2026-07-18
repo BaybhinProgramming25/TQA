@@ -107,14 +107,35 @@ CHAT_PROMPT = ChatPromptTemplate.from_messages([
     ("human", "{question}"),
 ])
 
+REWRITE_PROMPT = ChatPromptTemplate.from_messages([
+    ("system",
+     """Given the chat history, rewrite the user's latest question so it \
+makes complete sense on its own, with no pronouns or vague references \
+like "it", "those courses", "that semester", "what about...". \
+Fill in the specific courses, semesters, or topics the user is referring to, \
+based on the history. Do NOT answer the question. Do NOT add new meaning. \
+If the question already makes complete sense on its own, return it \
+exactly unchanged. Return ONLY the question, nothing else."""),
+    MessagesPlaceholder(variable_name="history"),
+    ("human", "{question}"),
+])
+
 
 async def query_stream(question: str, index_key: str, openai_api_key: str, history: list = []):
     """Classify the question, then stream the answer with or without RAG."""
 
     llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4o-mini", temperature=0)
 
+    standalone = question 
+    if history:
+        rewriter_chain = REWRITE_PROMPT | llm | StrOutputParser()
+        result = (await rewriter_chain.ainvoke({"question": question, "history": history})).strip()
+
+        if result:
+            standalone = result 
+
     classify_chain = CLASSIFY_PROMPT | llm | StrOutputParser()
-    classification = (await classify_chain.ainvoke({"question": question})).strip().lower()
+    classification = (await classify_chain.ainvoke({"question": standalone})).strip().lower()
     is_transcript_question = classification.startswith("yes")
 
     if not is_transcript_question:
