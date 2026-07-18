@@ -31,3 +31,6 @@ backend/main.py
 # Ignore testing results
 testing/results.json
 testing/prompt_pairs.jsonl
+
+# Ignore csv folder
+csvs/
