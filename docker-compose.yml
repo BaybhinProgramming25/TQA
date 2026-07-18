@@ -1,5 +1,5 @@
 services:
-  tqa-mysql:
+  mysql:
     image: mysql
     command: --innodb-buffer-pool-size=128M
     mem_limit: 256m
@@ -23,7 +23,7 @@ services:
     env_file:
       - ./backend/.env
     depends_on:
-      tqa-mysql:
+      mysql:
         condition: service_healthy
     volumes:
       - uploads-data:/uploads
