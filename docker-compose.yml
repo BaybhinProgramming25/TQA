@@ -20,8 +20,7 @@ services:
     build: 
       context: ./backend 
       dockerfile: Dockerfile 
-    env_file:
-      - ./backend/.env
+    env_file: ./backend/.env
     depends_on:
       mysql:
         condition: service_healthy
