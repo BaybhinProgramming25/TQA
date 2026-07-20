@@ -1,77 +1,17 @@
 import os
 import logging
-from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_core.documents import Document
+
+from dotenv import load_dotenv
+from helpers.store import transcripts
+
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
 
+load_dotenv()
+
 logger = logging.getLogger(__name__)
-
-
-DATA_DIR = os.getenv("DATA_DIR", "data")
-_embeddings: OpenAIEmbeddings | None = None
-_index_cache: dict[str, FAISS] = {}
-
-
-def get_embeddings(openai_api_key: str) -> OpenAIEmbeddings:
-    global _embeddings
-    if _embeddings is None:
-        _embeddings = OpenAIEmbeddings(api_key=openai_api_key, model="text-embedding-3-large")
-    return _embeddings
-
-
-def init_db(chunks: list[tuple[str, dict]], index_key: str, openai_api_key: str):
-    """Embed chunks and save a FAISS index for the given document."""
-
-    os.makedirs(DATA_DIR, exist_ok=True)
-    index_path = os.path.join(DATA_DIR, f"faiss_index_{index_key}")
-
-    if os.path.exists(index_path):
-        logger.info("Index for %s already exists, skipping", index_key)
-        return
-
-    docs = [Document(page_content=chunk, metadata=metadata) for chunk, metadata in chunks]
-
-    logger.info("Embedding %d chunks for %s", len(docs), index_key)
-    vector_store = FAISS.from_documents(docs, get_embeddings(openai_api_key))
-
-    logger.info("Writing FAISS index to %s", index_path)
-    vector_store.save_local(index_path)
-    del vector_store
-    logger.info("FAISS index saved for %s", index_key)
-
-
-
-
-def load_db(index_key: str, openai_api_key: str) -> FAISS:
-    """Load a FAISS index for the given document, caching it in memory."""
-
-    if index_key not in _index_cache:
-        index_path = os.path.join(DATA_DIR, f"faiss_index_{index_key}")
-        _index_cache[index_key] = FAISS.load_local(index_path, get_embeddings(openai_api_key), allow_dangerous_deserialization=True)
-        logger.info("Loaded index for %s from disk", index_key)
-    else:
-        logger.info("Index for %s already in memory", index_key)
-
-    return _index_cache[index_key]
-
-
-
-
-def delete_index(index_key: str):
-    """Remove a FAISS index from disk and evict it from the in-memory cache."""
-
-    index_path = os.path.join(DATA_DIR, f"faiss_index_{index_key}")
-    if os.path.exists(index_path):
-        import shutil
-        shutil.rmtree(index_path)
-        logger.info("Removed FAISS index at %s", index_path)
-
-    _index_cache.pop(index_key, None)
-
-
+openai_api_key = os.environ["OPENAI_API_KEY"]
 
 
 CLASSIFY_PROMPT = ChatPromptTemplate.from_messages([
@@ -80,7 +20,7 @@ Answer only "yes" or "no". Nothing else."""),
     ("human", "{question}"),
 ])
 
-RAG_PROMPT = ChatPromptTemplate.from_messages([
+TRANSCRIPT_PROMPT = ChatPromptTemplate.from_messages([
     ("system", """You are a helpful assistant that answers questions about a \
 student's academic transcript. Use only the context provided. The context \
 contains the student's COMPLETE course history — every course and every \
@@ -120,17 +60,17 @@ exactly unchanged. Return ONLY the question, nothing else."""),
     ("human", "{question}"),
 ])
 
+llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4o-mini", temperature=0)
+transcript_chain = TRANSCRIPT_PROMPT | llm | StrOutputParser()
 
-async def query_stream(question: str, index_key: str, openai_api_key: str, history: list = []):
+
+async def query_stream(question: str, user_email: str, history: list = []):
     """Classify the question, then stream the answer with or without RAG."""
-
-    llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4o-mini", temperature=0)
 
     standalone = question 
     if history:
         rewriter_chain = REWRITE_PROMPT | llm | StrOutputParser()
         result = (await rewriter_chain.ainvoke({"question": question, "history": history})).strip()
-
         if result:
             standalone = result 
 
@@ -145,23 +85,12 @@ async def query_stream(question: str, index_key: str, openai_api_key: str, histo
             yield ("token", chunk)
         return
 
-    vector_store = load_db(index_key, openai_api_key)
-    retriever = vector_store.as_retriever(search_kwargs={"k": 5})
-    retrieved_docs = retriever.invoke(question)
-    top_page = retrieved_docs[0].metadata.get("page") if retrieved_docs else None
-    pages = [top_page] if top_page else []
-    yield ("sources", pages)
+    transcript_info = transcripts.get(user_email)
 
-    chain = (
-        {
-            "context": lambda x: retrieved_docs,
-            "question": lambda x: x["question"],
-            "history": lambda x: x["history"],
-        }
-        | RAG_PROMPT
-        | llm
-        | StrOutputParser()
-    )
-    async for chunk in chain.astream({"question": question, "history": history}):
+    if not transcript_info:                                   
+        yield ("token", "I don't have your transcript yet — upload it first!")
+        return
+
+    async for chunk in transcript_chain.astream({"context": transcript_info, "question": question, "history": history}):
         yield ("token", chunk)
 

@@ -19,7 +19,6 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs(os.getenv("UPLOADS_DIR", "/uploads"), exist_ok=True)
-    os.makedirs(os.getenv("DATA_DIR", "data"), exist_ok=True)
     Base.metadata.create_all(bind=engine)
     yield
 

@@ -8,6 +8,7 @@ from database.database import get_db
 from database.models import Document, Message
 from helpers.jwt import get_current_user
 from helpers.limiter import limiter
+from helpers.store import transcripts
 from rag import query_stream
 from langchain_core.messages import HumanMessage, AIMessage
 
@@ -18,13 +19,6 @@ import logging
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-
-EXPORT_KEYWORDS = {"export", "excel", "spreadsheet", "xlsx", "download"}
-def _is_export_intent(message: str) -> bool:
-    
-    words = set(message.lower().split())
-    return bool(words & EXPORT_KEYWORDS)
 
 
 @router.get("/api/messages/{document_id}")
@@ -107,23 +101,9 @@ async def parse(request: Request, message: str = Form(...), document_id: int = F
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    if _is_export_intent(message):
-        reply = "Sure! Exporting your transcript to Excel now..."
-        try:
-            db.add_all([
-                Message(user_email=current_user["username"], document_id=doc.id, sender="user", text=message),
-                Message(user_email=current_user["username"], document_id=doc.id, sender="ai", text=reply),
-            ])
-            db.commit()
-        except SQLAlchemyError:
-            db.rollback()
-            raise HTTPException(status_code=500, detail="Database Error")
 
-        async def export_stream():
-            yield f"data: {json.dumps({'action': 'export', 'message': reply})}\n\n"
-            yield "data: [DONE]\n\n"
-
-        return StreamingResponse(export_stream(), media_type="text/event-stream")
+    if doc.transcript_text:
+        transcripts[current_user["username"]] = doc.transcript_text
 
     history = []
     try:
@@ -141,14 +121,14 @@ async def parse(request: Request, message: str = Form(...), document_id: int = F
                 history.append(AIMessage(content=m.text))
     except SQLAlchemyError:
         history = []
+    
+    user_email = current_user["username"]
 
     async def rag_stream():
         full_answer = []
         try:
-            async for kind, content in query_stream(message, f"{doc.user_email}_{doc.filename}", OPENAI_API_KEY, history):
-                if kind == "sources":
-                    yield f"data: {json.dumps({'sources': content})}\n\n"
-                elif kind == "token":
+            async for kind, content in query_stream(message, user_email, history):
+                if kind == "token":
                     full_answer.append(content)
                     yield f"data: {json.dumps({'token': content})}\n\n"
         except Exception as e:

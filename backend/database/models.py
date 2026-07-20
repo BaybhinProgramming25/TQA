@@ -15,13 +15,13 @@ class User(Base):
 class Document(Base):
 
     __tablename__ = "documents"
-
     id = Column(Integer, primary_key=True, index=True)
     user_email = Column(String(50), ForeignKey("users.email"), nullable=False)
     filename = Column(String(255), nullable=False)
     filepath = Column(String(500), nullable=False)
     size = Column(Integer, nullable=False)
     uploaded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    transcript_text = Column(Text)
 
 class Message(Base):
 
