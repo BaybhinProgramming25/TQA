@@ -22,8 +22,8 @@ const Home = () => {
         <div className="home-feature-card">
           <h2>Upload Your Transcript</h2>
           <p>
-            Upload a PDF of your Stony Brook transcript and TQA will instantly parse
-            and analyze it — simply signup and begin asking.
+            Upload a PDF of your Stony Brook transcript and TQA will instantly read
+            it — simply signup and begin asking.
           </p>
         </div>
 
@@ -36,10 +36,10 @@ const Home = () => {
         </div>
 
         <div className="home-feature-card">
-          <h2>Export Your Transcript</h2>
+          <h2>Follow-Up Questions Just Work</h2>
           <p>
-            Need a formatted copy? Just ask TQA to export your transcript and get a
-            clean, shareable version generated on the spot.
+            TQA remembers the conversation, so you can keep it short — ask "what about
+            the semester after that?" and it knows exactly what you mean.
           </p>
         </div>
       </section>
