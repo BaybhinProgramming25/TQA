@@ -32,5 +32,8 @@ backend/main.py
 testing/results.json
 testing/prompt_pairs.jsonl
 
+# Never commit real transcripts — they contain personal academic records
+testing/*.pdf
+
 # Ignore csv folder
 csvs/

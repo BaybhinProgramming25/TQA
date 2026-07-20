@@ -1,6 +1,6 @@
 # TranscriptQA
 
-A RAG-powered web application that lets Stony Brook CS students upload their academic transcripts and ask natural language questions about their records. Answers are grounded in the transcript content via semantic search and streamed back in real time.
+A web application that lets Stony Brook CS students upload their academic transcripts and ask natural language questions about their records. The full transcript is supplied as context on every question, so answers are grounded in the document itself and streamed back in real time.
 
 ## Tech Stack
 
@@ -9,40 +9,42 @@ A RAG-powered web application that lets Stony Brook CS students upload their aca
 | Frontend | React + Vite |
 | Backend | FastAPI (Python) + Uvicorn |
 | Database | MySQL + SQLAlchemy |
-| Vector Store | FAISS |
-| Embeddings | OpenAI `text-embedding-3-large` |
+| PDF Extraction | LangChain `PyPDFLoader` |
 | LLM | OpenAI `gpt-4o-mini` |
-| RAG Framework | LangChain |
+| LLM Framework | LangChain |
 | Auth | JWT + bcrypt |
 | Infrastructure | Docker + Docker Compose |
 
 ## Features
 
-- Upload a PDF transcript — parsed and indexed automatically into a FAISS vector store
+- Upload a PDF transcript — text is extracted once at upload and stored
 - Ask natural language questions with streaming responses — "What's my cumulative GPA?", "What is this class about", "What classes did I take this semester?"
 - Conversation memory — follow-up questions work naturally
-- Smart routing — general questions bypass the RAG pipeline entirely
-- Source citations — each answer links back to the page in the transcript it came from
+- Question rewriting — vague follow-ups ("what about that one?") are expanded into standalone questions before answering
+- Smart routing — general chit-chat skips the transcript context entirely
 - Clear chat history per document
-- RAGAS evaluation harness with 86% faithfulness and 61% answer relevancy across 50 test queries
+- RAGAS evaluation harness measuring faithfulness and answer relevancy
 
 ## Architecture
 
 ```
 Browser → Frontend container (React)
                         → /api/* → Backend container (FastAPI)
-                        → MySQL (users, documents, messages)
-                        → FAISS index (vector embeddings)
+                        → MySQL (users, documents, messages, transcript text)
 ```
 
-### RAG Pipeline
+### Pipeline
 
 1. User uploads a PDF transcript
-2. Backend parses it into structured chunks (semester, course, student level)
-3. Chunks are embedded via OpenAI and saved to a FAISS index on disk
-4. On each query, a classifier determines if the question is transcript-related
-5. If yes — FAISS retrieves the top matching chunk, context is passed to Claude Sonnet
-6. Answer streams back token by token via SSE with a source page citation
+2. Backend extracts the full text with `PyPDFLoader` and stores it on the document row
+3. On each query, the question is rewritten against chat history into a standalone question
+4. A classifier decides whether the question is transcript-related
+5. If yes — the **entire** transcript is passed as context to `gpt-4o-mini`; if no, a plain chat prompt is used
+6. The answer streams back token by token via SSE
+
+There is no retrieval step. The transcript is small enough to fit in the model's
+context window, so it is sent in full rather than chunked, embedded, and searched.
+This trades token cost per question for the removal of retrieval as a failure mode.
 
 ## Setup
 
@@ -81,17 +83,59 @@ The frontend will be available at `http://localhost:8080` and the backend at `ht
 
 ## Evaluation
 
-The testing harness uses RAGAS to evaluate the RAG pipeline on 50 generated test queries.
+The testing harness uses RAGAS to score the pipeline on generated test questions.
+`evaluate.py` drives the real pipeline (`query_stream`) rather than reimplementing
+it, so the rewrite and classify steps are measured too.
+
+The harness runs on the host, not in Docker. It needs the backend dependencies
+plus `ragas`, which is not part of the backend runtime requirements, and reads
+`OPENAI_API_KEY` from `backend/.env`:
 
 ```bash
-# Build the FAISS index locally
-python testing/build_index.py --pdf path/to/transcript.pdf --index_key email@example.com_transcript.pdf
-
-# Generate test question/chunk pairs
-python testing/generate_pairs.py --pdf path/to/transcript.pdf --count {count_amount <= 56} --seed {seed_value}
-
-# Run RAGAS evaluation
-python testing/evaluate.py --index_key email@example.com_transcript.pdf
+pip install -r backend/requirements.txt
+pip install ragas
 ```
 
-Results are saved to `testing/results.json`.
+```bash
+# Generate test questions from a transcript
+# --count must not exceed the number of chunks the transcript yields
+python testing/generate_pairs.py --pdf path/to/transcript.pdf --count 50 --seed 42
+
+# Run RAGAS evaluation
+python testing/evaluate.py --pdf path/to/transcript.pdf
+```
+
+Results are saved to `testing/results.json`, including per-question rows so a low
+average can be traced back to the answer that caused it.
+
+`generate_pairs.py` splits the transcript into semester- and course-level chunks
+and writes one question per sampled chunk, which keeps the question set spread
+evenly across every semester. This is a test-authoring tool only — the
+application itself never chunks anything, and `evaluate.py` reads only the
+`question` field.
+
+### Baseline
+
+50 questions against a real transcript, `gpt-4o-mini`:
+
+| Metric | Score |
+|---|---|
+| faithfulness | 0.91 |
+| answer relevancy | 0.70 |
+
+Not comparable to retrieval-based baselines: supplying the whole transcript as
+context removes retrieval error as a failure mode, so faithfulness is measured
+against an easier target than it would be under a retrieval pipeline. Question
+generation is non-deterministic, so expect movement between runs.
+
+### Interpreting the metrics
+
+- **faithfulness** — are the answer's claims supported by the context. With the
+  whole transcript in context this is an easier test than it was under retrieval,
+  so scores are high and not comparable to retrieval-based baselines.
+- **answer relevancy** — does the answer address the question. Scores here are
+  held down by the question generator's prompt, which deliberately asks for vague,
+  student-like phrasing; specific correct answers to vague questions score lower.
+
+Question generation is non-deterministic, so numbers shift between runs. For a
+stable baseline, generate a question set once and commit it.
