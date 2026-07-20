@@ -66,7 +66,7 @@ MYSQL_DATABASE=yourdbname
 MYSQL_USER=yourusername
 MYSQL_PASSWORD=yourpassword
 
-DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@tqa-mysql:3306/${MYSQL_DATABASE}
+DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
 FRONTEND_URL=https://yourdomain.com
 
 UPLOADS_DIR=/uploads
