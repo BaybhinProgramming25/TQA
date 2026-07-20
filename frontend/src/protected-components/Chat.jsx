@@ -70,23 +70,7 @@ const Chat = () => {
           try {
             const parsed = JSON.parse(raw);
 
-            if (parsed.action === 'export') {
-              setIsLoading(false);
-              const blob = await api.get(`/api/documents/${selectedDoc.id}/export`, { responseType: 'blob' });
-              const url = URL.createObjectURL(blob.data);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = selectedDoc.filename.replace('.pdf', '.xlsx');
-              a.click();
-              URL.revokeObjectURL(url);
-              setMessages(prev => [...prev, {
-                id: aiMessageId,
-                text: parsed.message,
-                sender: 'ai',
-                timestamp: new Date().toLocaleTimeString(),
-                sources: [],
-              }]);
-            } else if (parsed.sources !== undefined) {
+            if (parsed.sources !== undefined) {
               streamStarted = true;
               setIsLoading(false);
               setMessages(prev => [...prev, {
