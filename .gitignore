@@ -1,18 +1,18 @@
 # Ignore vscode folder 
-.vscode/
+.vsocde
+
+# Ignore environment
+venv
 
 # Ignore env 
-env/
-**/.env
-*/.env
+.env
 
 # Ignore pycache 
-__pycache__/
-__pycache__/**
-**.pyc
+__pycache__
+.pyc
 
 # Ignore all possible node_modules
-*/node_modules/
+node_modules
 
 # Ignore data folder in backend
 backend/data

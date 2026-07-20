@@ -7,6 +7,7 @@ from database.models import Document, Message
 from helpers.jwt import get_current_user
 from helpers.getchunks import parse_pdf
 from helpers.limiter import limiter
+from helpers.ingest import ingest_transcript
 from rag import init_db, delete_index
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -61,8 +62,10 @@ def upload_document(request: Request, file: UploadFile = File(...), db: Session 
 
 
     try:
-        chunks = parse_pdf(pdf_bytes)
-        init_db(chunks, f"{user_email}_{file.filename}", OPENAI_API_KEY)
+        # chunks = parse_pdf(pdf_bytes)
+        # init_db(chunks, f"{user_email}_{file.filename}", OPENAI_API_KEY)
+        output = ingest_transcript(filepath)
+        print(output)
     except Exception as e:
         logger.error("Failed to build FAISS index for user %s, file %s: %s", user_email, file.filename, e)
         raise HTTPException(status_code=500, detail="An unexpected error occurred")
