@@ -23,7 +23,6 @@ A RAG-powered web application that lets Stony Brook CS students upload their aca
 - Conversation memory — follow-up questions work naturally
 - Smart routing — general questions bypass the RAG pipeline entirely
 - Source citations — each answer links back to the page in the transcript it came from
-- Export transcript to a formatted Excel (.xlsx) file
 - Clear chat history per document
 - RAGAS evaluation harness with 86% faithfulness and 61% answer relevancy across 50 test queries
 
@@ -70,7 +69,6 @@ DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_
 FRONTEND_URL=https://yourdomain.com
 
 UPLOADS_DIR=/uploads
-DATA_DIR=/app/data
 ```
 
 ### Running Locally
