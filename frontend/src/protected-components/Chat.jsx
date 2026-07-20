@@ -147,13 +147,14 @@ const Chat = () => {
   };
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pdfPanel, setPdfPanel] = useState({ open: false, page: null });
+  const [pdfOpen, setPdfOpen] = useState(true);
   const isEmpty = messages.length === 0;
 
   const handleSelectDoc = async (doc) => {
     setSidebarOpen(false);
     setInputValue('');
     setSelectedDoc(doc);
+    setPdfOpen(true);
     if (!doc) { setMessages([]); return; }
     try {
       const response = await api.get(`/api/messages/${doc.id}`);
@@ -199,9 +200,14 @@ const Chat = () => {
         {selectedDoc && (
           <div className="chat-doc-banner chat-doc-banner--desktop">
             <span>📄 {selectedDoc.filename}</span>
-            <button className="chat-doc-banner-close" onClick={handleClearChat}>
-              Clear chat
-            </button>
+            <div className="chat-doc-banner-actions">
+              <button className="chat-doc-banner-toggle" onClick={() => setPdfOpen(o => !o)}>
+                {pdfOpen ? 'Hide PDF' : 'Show PDF'}
+              </button>
+              <button className="chat-doc-banner-close" onClick={handleClearChat}>
+                Clear chat
+              </button>
+            </div>
           </div>
         )}
 
@@ -227,19 +233,6 @@ const Chat = () => {
                 )}
                 <div className="message-bubble">
                   <div className="message-text"><ReactMarkdown>{message.text}</ReactMarkdown></div>
-                  {message.sender === 'ai' && message.sources && message.sources.length > 0 && (
-                    <div className="message-sources">
-                      {message.sources.map(page => (
-                        <button
-                          key={page}
-                          className="source-badge"
-                          onClick={() => setPdfPanel({ open: true, page })}
-                        >
-                          p.{page}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                   {message.files && (
                     <div className="message-files">
                       {message.files.map(file => (
@@ -300,16 +293,17 @@ const Chat = () => {
           </p>
         </div>
       </div>
-      {pdfPanel.open && selectedDoc && (
+      {pdfOpen && selectedDoc && (
         <div className="pdf-panel">
           <div className="pdf-panel-header">
-            <span>Source — p.{pdfPanel.page}</span>
-            <button className="pdf-panel-close" onClick={() => setPdfPanel({ open: false, page: null })}>✕</button>
+            <span title={selectedDoc.filename}>📄 {selectedDoc.filename}</span>
+            <button className="pdf-panel-close" onClick={() => setPdfOpen(false)}>✕</button>
           </div>
           <iframe
+            key={selectedDoc.id}
             className="pdf-panel-frame"
-            src={`/api/documents/${selectedDoc.id}/file#page=${pdfPanel.page}`}
-            title="Source PDF"
+            src={`/api/documents/${selectedDoc.id}/file`}
+            title={selectedDoc.filename}
           />
         </div>
       )}
