@@ -15,8 +15,13 @@ openai_api_key = os.environ["OPENAI_API_KEY"]
 
 
 CLASSIFY_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """You are a classifier. Determine if the question is related to an academic transcript, courses, grades, GPA, credits, semesters, or academic records.
-Answer only "yes" or "no". Nothing else."""),
+    ("system",
+     'Determine if the question can be answered from a student\'s academic '
+     'transcript. Transcripts contain: the student\'s name, student ID, '
+     'program, major, degree, catalog year, academic standing, honors, and '
+     'their full course history including courses, grades, GPA, credits, '
+     'and semesters.\n'
+     'Answer only "yes" or "no". Nothing else.'),
     ("human", "{question}"),
 ])
 
