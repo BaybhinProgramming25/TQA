@@ -9,7 +9,7 @@ from database.models import Document, Message
 from helpers.jwt import get_current_user
 from helpers.limiter import limiter
 from helpers.store import transcripts
-from backend.context import query_stream
+from context import query_stream
 from langchain_core.messages import HumanMessage, AIMessage
 
 import os
