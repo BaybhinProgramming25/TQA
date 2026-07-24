@@ -38,7 +38,11 @@ respond: "<course> could not be found in your transcript."
 If the user asks about a semester that does not appear in the context, \
 respond: "Your transcript has no records for <semester>. It covers \
 <first semester> through <last semester>."
-Never say "I don't know."
+If the user asks about their name or ID number, provide them with \
+that information ONLY if it appears in the context. If it does not \
+appear, say: "That information is not in your transcript."
+ONLY answer using the context provided. If the answer is not there \
+say it is not there."
 
 Context:
 {context}"""),
