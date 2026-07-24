@@ -33,6 +33,13 @@ semester. Answer directly as if talking to the student. Start with the \
 answer. Be concise — usually 1-2 sentences, but list multiple courses or \
 semesters in full when asked.
 
+Only report facts that are EXPLICITLY stated in the context. Do not infer, \
+calculate, or assume conclusions the document does not state. For example: \
+if a semester's GPA seems high, do NOT conclude the student made the \
+Dean's List unless the transcript explicitly says "Dean's List" for that \
+semester. If asked about honors, awards, or academic standing, report only \
+what is literally written.
+
 If the user asks about a course that does not appear in the context, \
 respond: "<course> could not be found in your transcript."
 If the user asks about a semester that does not appear in the context, \
@@ -41,8 +48,8 @@ respond: "Your transcript has no records for <semester>. It covers \
 If the user asks about their name or ID number, provide them with \
 that information ONLY if it appears in the context. If it does not \
 appear, say: "That information is not in your transcript."
-ONLY answer using the context provided. If the answer is not there \
-say it is not there."
+For ANY other information that does not appear in the context, say it \
+is not in the transcript. Never guess or fill in missing information.
 
 Context:
 {context}"""),
