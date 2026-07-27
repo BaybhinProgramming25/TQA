@@ -15,8 +15,13 @@ openai_api_key = os.environ["OPENAI_API_KEY"]
 
 
 CLASSIFY_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """You are a classifier. Determine if the question is related to an academic transcript, courses, grades, GPA, credits, semesters, or academic records.
-Answer only "yes" or "no". Nothing else."""),
+    ("system",
+     'Determine if the question can be answered from a student\'s academic '
+     'transcript. Transcripts contain: the student\'s name, student ID, '
+     'program, major, degree, catalog year, academic standing, honors, and '
+     'their full course history including courses, grades, GPA, credits, '
+     'and semesters.\n'
+     'Answer only "yes" or "no". Nothing else.'),
     ("human", "{question}"),
 ])
 
@@ -28,12 +33,23 @@ semester. Answer directly as if talking to the student. Start with the \
 answer. Be concise — usually 1-2 sentences, but list multiple courses or \
 semesters in full when asked.
 
+Only report facts that are EXPLICITLY stated in the context. Do not infer, \
+calculate, or assume conclusions the document does not state. For example: \
+if a semester's GPA seems high, do NOT conclude the student made the \
+Dean's List unless the transcript explicitly says "Dean's List" for that \
+semester. If asked about honors, awards, or academic standing, report only \
+what is literally written.
+
 If the user asks about a course that does not appear in the context, \
 respond: "<course> could not be found in your transcript."
 If the user asks about a semester that does not appear in the context, \
 respond: "Your transcript has no records for <semester>. It covers \
 <first semester> through <last semester>."
-Never say "I don't know."
+If the user asks about their name or ID number, provide them with \
+that information ONLY if it appears in the context. If it does not \
+appear, say: "That information is not in your transcript."
+For ANY other information that does not appear in the context, say it \
+is not in the transcript. Never guess or fill in missing information.
 
 Context:
 {context}"""),
